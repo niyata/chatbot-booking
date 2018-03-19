@@ -9,11 +9,10 @@ service = getGoogleCalendarService()
 
 while True:
     print('Getting the upcoming events')
-    now = datetime.datetime.utcnow()
-    endTime = time + timedelta(hours=1)
+    now = datetime.utcnow()
+    endTime = now + timedelta(hours=1)
     now = now.isoformat() + 'Z' # 'Z' indicates UTC time
     endTime = endTime.isoformat() + 'Z' # 'Z' indicates UTC time
-
     eventsResult = service.events().list(
         calendarId='primary', timeMin=now, timeMax= endTime, maxResults=2500, singleEvents=True,
         orderBy='startTime').execute()
@@ -50,9 +49,10 @@ while True:
                 }
             }
             r = requests.post('https://graph.facebook.com/v2.6/me/messages?access_token=%s'%(fb_PAGE_ACCESS_TOKEN), data=msgDict)
-            print(r.text)
+            print('fb message sent', r.text)
         else:
             # send sms
             msg = 'Booking date: %s https://www.messenger.com/t/498812477183171?phone=%s'%(row[4], urllib.parse.urlencode({'phone': row[0]}))
             sendSms(phone, msg)
+            print('sms sent')
     time.sleep(schedule_delay)
