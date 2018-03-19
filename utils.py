@@ -2,11 +2,18 @@ import os
 from os import path
 from config import TIMEZONE
 from datetime import datetime, timedelta
+import time
+from pytz import timezone
 
 pj = path.join
 
 def p(pt):
     return pj(path.dirname(__file__), pt)
+
+
+def local2utc(dt):
+    utc_st = dt.replace(tzinfo=timezone(TIMEZONE)).astimezone(timezone('UTC'))
+    return utc_st
 
 gcService = None
 def getGoogleCalendarService():
@@ -45,13 +52,13 @@ def createEvent(name, time, lastHours):
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
         # 'dateTime': '2015-05-28T09:00:00-07:00',
-        'dateTime': time.strftime('%y-%m-%dT%H:%M:%S') + endTime.strftime('-%H:%M:%S'),
+        'dateTime': local2utc(time).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'timeZone': TIMEZONE,
       },
-      # 'end': {
-      #   'dateTime': '2015-05-28T17:00:00-07:00',
-      #   'timeZone': TIMEZONE,
-      # },
+      'end': {
+        'dateTime': local2utc(endTime).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'timeZone': TIMEZONE,
+      },
       # 'recurrence': [
       #   'RRULE:FREQ=DAILY;COUNT=2'
       # ],
