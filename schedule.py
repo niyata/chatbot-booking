@@ -45,8 +45,8 @@ while True:
         print(row)
         phone = row[0]
         facebookid = row[3]
-        datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
-        bookingDatetime = datetime.strftime('%Y-%m-%dT%H:%M:%S')
+        start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
+        bookingDatetime = start.strftime('%Y-%m-%dT%H:%M:%S')
         msgFront = 'Hi %s, Your booking is %s.'%(row[1], bookingDatetime)
         if phone:
             # send sms
