@@ -46,9 +46,8 @@ while True:
             params = {'phone': phone}
             if facebookid:
                 params['fbid'] = facebookid
-            link =
-            msg = 'Booking date: %s https://www.messenger.com/t/498812477183171?phone=%s'%(bookingDatetime, urllib.parse.urlencode(params))
-            msg = msgFront + ' For more info pleaes check out our chatbot %s.'%()
+            link = 'https://www.messenger.com/t/498812477183171?phone=%s'%(urllib.parse.urlencode(params))
+            msg = msgFront + ' For more info pleaes check out our chatbot %s.'%(link)
             sendSms(phone, msg)
             print('sms sent')
         if facebookid:
