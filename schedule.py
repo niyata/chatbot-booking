@@ -36,7 +36,21 @@ while True:
         phone = ls[0]
         name = ls[1]
         row = findRow(phone, name)
+        print(row)
+        phone = row[0]
         facebookid = row[3]
+        bookingDatetime = '%s %s:%s'%(row[4], row[5], row[6])
+        msgFront = 'Hi %, Your booking is %s.'%(row[1], bookingDatetime)
+        if phone:
+            # send sms
+            params = {'phone': phone}
+            if facebookid:
+                params['fbid'] = facebookid
+            link =
+            msg = 'Booking date: %s https://www.messenger.com/t/498812477183171?phone=%s'%(bookingDatetime, urllib.parse.urlencode(params))
+            msg = msgFront + ' For more info pleaes check out our chatbot %s.'%()
+            sendSms(phone, msg)
+            print('sms sent')
         if facebookid:
             # send fb msg
             msgDict = {
@@ -45,14 +59,9 @@ while True:
                     "id": facebookid
                 },
                 "message": {
-                    "text": "todo"
+                    "text": msgFront,
                 }
             }
             r = requests.post('https://graph.facebook.com/v2.6/me/messages?access_token=%s'%(fb_PAGE_ACCESS_TOKEN), data=msgDict)
             print('fb message sent', r.text)
-        else:
-            # send sms
-            msg = 'Booking date: %s https://www.messenger.com/t/498812477183171?phone=%s'%(row[4], urllib.parse.urlencode({'phone': row[0]}))
-            sendSms(phone, msg)
-            print('sms sent')
     time.sleep(schedule_delay)

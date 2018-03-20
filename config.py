@@ -9,7 +9,7 @@ sms_auth_token = "4ce6537d6bb630d1004fe5fdf81da0e4"
 sms_from = '+85264507340'
 
 # facebook
-fb_PAGE_ACCESS_TOKEN = ''
+fb_PAGE_ACCESS_TOKEN = 'EAAFmZCvLIgZAYBAJjJxvxf36IRZAFEk92AEjcdh75HjwcodXWjceIOzkU3mj8iDHPPE3PaOd6w5wX9qnkRBOzCPMvggcZBtY78FWhVwLl86VcSQ55WEHKZAZB92waofq1QY9vxM6FNf2junElWylKvatD6aHtALjjxuMynJ98G6gZDZD'
 
 #
 schedule_delay = 3600 # seconds

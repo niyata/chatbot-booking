@@ -52,11 +52,11 @@ def createEvent(name, time, lastHours):
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
         # 'dateTime': '2015-05-28T09:00:00-07:00',
-        'dateTime': local2utc(time).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'dateTime': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'timeZone': TIMEZONE,
       },
       'end': {
-        'dateTime': local2utc(endTime).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'dateTime': endTime.strftime('%Y-%m-%dT%H:%M:%S'),
         'timeZone': TIMEZONE,
       },
       # 'recurrence': [
