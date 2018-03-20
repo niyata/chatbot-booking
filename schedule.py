@@ -40,7 +40,7 @@ while True:
         phone = row[0]
         facebookid = row[3]
         bookingDatetime = '%s %s:%s'%(row[4], row[5], row[6])
-        msgFront = 'Hi %, Your booking is %s.'%(row[1], bookingDatetime)
+        msgFront = 'Hi %s, Your booking is %s.'%(row[1], bookingDatetime)
         if phone:
             # send sms
             params = {'phone': phone}
