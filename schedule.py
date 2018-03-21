@@ -1,6 +1,6 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
 from datetime import datetime, timedelta
-from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay, fb_PAGE_NAME
+from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import requests
 import time
 import urllib.parse
@@ -54,7 +54,7 @@ while True:
             if facebookid:
                 params['fbid'] = facebookid
             # link = 'https://www.messenger.com/t/498812477183171?%s'%(urllib.parse.urlencode(params))
-            link = 'http://m.me/%s?%s'%(fb_PAGE_NAME, urllib.parse.urlencode(params))
+            link = 'http://m.me/498812477183171?ref=85255916933&%s'%(urllib.parse.urlencode(params))
             msg = msgFront + ' For more info pleaes check out our chatbot %s.'%(link)
             sendSms(phone, msg)
             print('sms sent', msg)
