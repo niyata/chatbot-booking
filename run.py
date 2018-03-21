@@ -1,7 +1,11 @@
 from flask import Flask, request
-from config import TIMEZONE, SPREADSHEETID
+from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService
 from datetime import datetime
+from fbmq import Page
+
+# fbmq page
+page = Page(fb_PAGE_ACCESS_TOKEN)
 
 # init app
 app = Flask(__name__)
@@ -55,6 +59,37 @@ def createEvents():
                 valueInputOption='USER_ENTERED', body=body).execute()
             print('{0} cells updated.'.format(result.get('updatedCells')));
     return 'ok'
+
+# facebook
+@app.route('/webhook', methods=['GET'])
+def validate():
+    if request.args.get('hub.mode', '') == 'subscribe' and \
+                    request.args.get('hub.verify_token', '') == fb_VERIFY_TOKEN:
+
+        print("Validating webhook")
+
+        return request.args.get('hub.challenge', '')
+    else:
+        return 'Failed validation. Make sure the validation tokens match.'
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+  page.handle_webhook(request.get_data(as_text=True))
+  return "ok"
+
+@page.handle_message
+def message_handler(event):
+  """:type event: fbmq.Event"""
+  print(event)
+  sender_id = event.sender_id
+  message = event.message_text
+
+  page.send(sender_id, "thank you! your message is '%s'" % message)
+
+@page.after_send
+def after_send(payload, response):
+  """:type payload: fbmq.Payload"""
+  print("complete")
 
 # bootstrap app
 if __name__ == '__main__':
