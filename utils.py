@@ -1,6 +1,6 @@
 import os
 from os import path
-from config import TIMEZONE
+from config import TIMEZONE, SPREADSHEETID
 from datetime import datetime, timedelta
 import time
 from pytz import timezone
