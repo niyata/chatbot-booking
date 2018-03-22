@@ -85,3 +85,21 @@ def sendSms(phone, msg):
         to=phone,
         from_=sms_from,
         body=msg)
+
+def getSheetValues(rangeName = 'Sheet1'):
+    service = getGoogleSheetService()
+    spreadsheetId = SPREADSHEETID
+    rangeName = 'Sheet1'
+    result = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheetId, range=rangeName).execute()
+    sheetRows = result.get('values', [])
+    return sheetRows
+
+def findRow(rows, phone, colIndex = 0):
+    # col 0 is phone, 3 is fbid
+    try:
+        return next(row for row in rows if row[colIndex] == phone)
+    except StopIteration as e:
+        return None
+def findRowByFbid(*a):
+    return findRow(*a, 3)

@@ -1,11 +1,15 @@
 from flask import Flask, request
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService
+from utils import getSheetValues,findRow, findRowByFbid
 from datetime import datetime
 from fbmq import Page, Template
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
+
+# constant
+VIEW_MY_BOOKING = 'VIEW_MY_BOOKING'
 
 # init app
 app = Flask(__name__)
@@ -92,25 +96,6 @@ def message_handler(event):
     sender_id = event.sender_id
     # message = event.message_text
     # page.send(sender_id, "thank you! your message is '%s'" % message)
-    buttons = [
-        {
-            "type": "web_url",
-            "url": "https://www.messenger.com",
-            "title": "View my booking"
-        },
-        {
-            "type": "web_url",
-            "url": "https://www.messenger.com",
-            "title": "Cancel my booking"
-        },
-        {
-            "type": "web_url",
-            "url": "https://www.messenger.com",
-            "title": "Make a booking"
-        },
-    ]
-    page.send(sender_id, Template.Buttons("hello", buttons))
-
 
 @page.handle_referral
 def handler2(event):
@@ -161,6 +146,36 @@ def handler2(event):
         else:
             print('no record found with given phone')
     print('no ref(phone) in hook event')
+    buttons = [
+        {
+            "type": "postback",
+            "value": VIEW_MY_BOOKING,
+            "title": "View my booking"
+        },
+        {
+            "type": "web_url",
+            "url": "https://www.messenger.com",
+            "title": "Cancel my booking"
+        },
+        {
+            "type": "web_url",
+            "url": "https://www.messenger.com",
+            "title": "Make a booking"
+        },
+    ]
+    page.send(sender_id, Template.Buttons("hello", buttons))
+
+@page.callback([VIEW_MY_BOOKING])
+def callback_1(payload, event):
+    sender_id = event.sender_id
+    print(VIEW_MY_BOOKING, sender_id)
+    rows = getSheetValues()
+    row = findRowByFbid(rows,sender_id)
+    if row:
+        page.send(sender_id, 'Booking date: %s %s:%s'%(row[4], row[5], row[6]))
+    else:
+        page.send(sender_id, 'No booking record found for you')
+    print('no booking record found', sender_id)
 
 
 @page.after_send

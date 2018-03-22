@@ -1,4 +1,5 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
+from utils import getSheetValues,findRow
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import requests
@@ -28,17 +29,12 @@ while True:
     result = service.spreadsheets().values().get(
         spreadsheetId=spreadsheetId, range=rangeName).execute()
     sheetRows = result.get('values', [])
-    def findRow(phone):
-        try:
-            return next(row for row in sheetRows if row[0] == phone)
-        except StopIteration as e:
-            return None
 
     for event in events:
         ls = event['summary'].split(' ')
         phone = ls[0]
         name = ls[1]
-        row = findRow(phone)
+        row = findRow(sheetRows, phone)
         if not row:
             print('row not found for event: %s'%(event['summary']))
             continue
