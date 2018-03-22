@@ -83,7 +83,7 @@ def message_handler(event):
   sender_id = event.sender_id
   # message = event.message_text
   # page.send(sender_id, "thank you! your message is '%s'" % message)
-  message({
+  message = {
     "attachment":{
       "type":"template",
       "payload":{
@@ -108,7 +108,7 @@ def message_handler(event):
         ]
       }
     }
-  })
+  }
   page.send(sender_id, message)
 
 @page.handle_referral
