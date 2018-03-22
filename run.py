@@ -90,12 +90,34 @@ def webhook():
     return "ok"
 
 
+def send_buttons(sender_id):
+    buttons = [
+        {
+            "type": "postback",
+            "value": VIEW_MY_BOOKING,
+            "title": "View my booking"
+        },
+        {
+            "type": "web_url",
+            "url": "https://www.messenger.com",
+            "title": "Cancel my booking"
+        },
+        {
+            "type": "web_url",
+            "url": "https://www.messenger.com",
+            "title": "Make a booking"
+        },
+    ]
+    page.send(sender_id, Template.Buttons("hello", buttons))
+
 @page.handle_message
 def message_handler(event):
     """:type event: fbmq.Event"""
     sender_id = event.sender_id
     # message = event.message_text
     # page.send(sender_id, "thank you! your message is '%s'" % message)
+    print('receive msg', sender_id)
+    send_buttons(sender_id)
 
 @page.handle_referral
 def handler2(event):
@@ -146,24 +168,7 @@ def handler2(event):
         else:
             print('no record found with given phone')
     print('no ref(phone) in hook event')
-    buttons = [
-        {
-            "type": "postback",
-            "value": VIEW_MY_BOOKING,
-            "title": "View my booking"
-        },
-        {
-            "type": "web_url",
-            "url": "https://www.messenger.com",
-            "title": "Cancel my booking"
-        },
-        {
-            "type": "web_url",
-            "url": "https://www.messenger.com",
-            "title": "Make a booking"
-        },
-    ]
-    page.send(sender_id, Template.Buttons("hello", buttons))
+    send_buttons(sender_id)
 
 @page.callback([VIEW_MY_BOOKING])
 def callback_1(payload, event):
