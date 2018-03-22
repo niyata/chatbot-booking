@@ -5,10 +5,10 @@ import requests
 import time
 import urllib.parse
 
-service = getGoogleCalendarService()
 
 while True:
     print('Getting the upcoming events')
+    service = getGoogleCalendarService()
     now = datetime.utcnow()
     endTime = now + timedelta(hours=1)
     now = now.isoformat() + 'Z' # 'Z' indicates UTC time
@@ -28,9 +28,9 @@ while True:
     result = service.spreadsheets().values().get(
         spreadsheetId=spreadsheetId, range=rangeName).execute()
     sheetRows = result.get('values', [])
-    def findRow(phone, name):
+    def findRow(phone):
         try:
-            return next(row for row in sheetRows if row[0] == phone and row[1] == name)
+            return next(row for row in sheetRows if row[0] == phone)
         except StopIteration as e:
             return None
 
@@ -38,7 +38,7 @@ while True:
         ls = event['summary'].split(' ')
         phone = ls[0]
         name = ls[1]
-        row = findRow(phone, name)
+        row = findRow(phone)
         if not row:
             print('row not found for event: %s'%(event['summary']))
             continue
@@ -50,11 +50,8 @@ while True:
         msgFront = 'Hi %s, Your booking is %s.'%(row[1], bookingDatetime)
         if phone:
             # send sms
-            params = {'phone': phone}
-            if facebookid:
-                params['fbid'] = facebookid
             # link = 'https://www.messenger.com/t/498812477183171?%s'%(urllib.parse.urlencode(params))
-            link = 'http://m.me/498812477183171?ref=85255916933&%s'%(urllib.parse.urlencode(params))
+            link = 'http://m.me/498812477183171?ref='+(phone if not facebookid else '')
             msg = msgFront + ' For more info pleaes check out our chatbot %s.'%(link)
             sendSms(phone, msg)
             print('sms sent', msg)

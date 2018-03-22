@@ -80,11 +80,85 @@ def webhook():
 @page.handle_message
 def message_handler(event):
   """:type event: fbmq.Event"""
-  print(event)
   sender_id = event.sender_id
-  message = event.message_text
+  # message = event.message_text
+  # page.send(sender_id, "thank you! your message is '%s'" % message)
+  message({
+    "attachment":{
+      "type":"template",
+      "payload":{
+        "template_type":"button",
+        # "text":"What do you want to do next?",
+        "buttons":[
+            {
+                "type":"web_url",
+                "url":"https://www.messenger.com",
+                "title":"View my booking"
+            },
+            {
+                "type":"web_url",
+                "url":"https://www.messenger.com",
+                "title":"Cancel my booking"
+            },
+            {
+                "type":"web_url",
+                "url":"https://www.messenger.com",
+                "title":"Make a booking"
+            },
+        ]
+      }
+    }
+  })
+  page.send(sender_id, message)
 
-  page.send(sender_id, "thank you! your message is '%s'" % message)
+@page.handle_referral
+def handler2(event):
+  """:type event: fbmq.Event"""
+  sender_id = event.sender_id
+  # page.send(sender_id, "thank you! your message is '%s'" % message)
+  try:
+      phone = event.referral['ref']
+  except Exception as e:
+      phone = None
+  if ref:
+      print('phone', phone)
+      # get sheet
+      service = getGoogleSheetService()
+      spreadsheetId = SPREADSHEETID
+      rangeName = 'Sheet1'
+      service = getGoogleSheetService()
+      result = service.spreadsheets().values().get(
+          spreadsheetId=spreadsheetId, range=rangeName).execute()
+      sheetRows = result.get('values', [])
+      def findRow(phone):
+          try:
+              return next(row for row in sheetRows if row[0] == phone)
+          except StopIteration as e:
+              return None
+      row = findRow(phone)
+      if row:
+          if row[3]:
+              print('record already has facebook id')
+          else:
+              print('store facebook id in google sheet')
+              values = [
+                  [
+                      phone
+                  ],
+                  # Additional rows ...
+              ]
+              body = {
+                  'values': values
+              }
+              rowIndex = sheetRows.index(row)
+              rangeName = 'Sheet1!D%s:D%s'%(rowIndex, rowIndex)
+              result = service.spreadsheets().values().update(
+                  spreadsheetId=spreadsheetId, range=rangeName,
+                  valueInputOption='USER_ENTERED', body=body).execute()
+              print('facebook id stored in google sheet')
+      else:
+          print('no record found with given phone')
+  print('no ref(phone) in hook event')
 
 @page.after_send
 def after_send(payload, response):
