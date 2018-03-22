@@ -64,7 +64,7 @@ def createEvents():
             ev = createEvent(*value[:-1])
             i = value[-1]
             phone = rows[i][0]
-            addPhoneEventMapping(phone, ev.id)
+            addPhoneEventMapping(phone, ev['id'])
 
         # save cleared
         if len(events) > 0:
