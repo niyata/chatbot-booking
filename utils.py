@@ -4,6 +4,7 @@ from config import TIMEZONE, SPREADSHEETID
 from datetime import datetime, timedelta
 import time
 from pytz import timezone
+import json
 
 pj = path.join
 
@@ -76,6 +77,7 @@ def createEvent(name, time, lastHours):
     }
     event = service.events().insert(calendarId='primary', body=event).execute()
     print('Event created: %s' % (event.get('htmlLink')))
+    return event
 
 def sendSms(phone, msg):
     from twilio.rest import Client
@@ -103,3 +105,26 @@ def findRow(rows, phone, colIndex = 0):
         return None
 def findRowByFbid(*a):
     return findRow(*a, 3)
+
+phoneEventFp = p('phone-event.json')
+def addPhoneEventMapping(phone, eventId):
+    fp = phoneEventFp
+    if not os.path.exists(fp):
+        with open(fp, 'w') as target:
+            target.write('{}')
+    mapping = None
+    with open(fp) as f:
+        mapping = json.loads(f.read())
+        if phone not in mapping:
+            mapping[phone] = []
+        mapping[phone].append(eventId)
+    with open(fp, 'w') as target:
+        target.write(json.dumps(mapping))
+
+def getEventIdByPhone(phone):
+    fp = phoneEventFp
+    if not os.path.exists(fp):
+        return None
+    with open(fp) as f:
+        mapping = json.loads(f.read())
+        return mapping.get(phone)

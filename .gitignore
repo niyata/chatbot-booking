@@ -114,3 +114,4 @@ borocol.cql
 test.py
 env.py
 /credentials
+/phone-event.json
