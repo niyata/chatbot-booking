@@ -106,6 +106,24 @@ def findRow(rows, phone, colIndex = 0):
 def findRowByFbid(*a):
     return findRow(*a, 3)
 
+def getEventByPhone(phone):
+    service = getGoogleCalendarService()
+    now = datetime.utcnow()
+    endTime = now + timedelta(hours=1)
+    now = now.isoformat() + 'Z' # 'Z' indicates UTC time
+    endTime = endTime.isoformat() + 'Z' # 'Z' indicates UTC time
+    eventsResult = service.events().list(
+        calendarId='primary', singleEvents=True, q =phone,
+        orderBy='startTime').execute()
+    events = eventsResult.get('items', [])
+    if not events:
+        return None
+    return events[0]
+def getBookingDateFromEvent(event):
+    start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
+    bookingDatetime = start.strftime('%Y-%m-%d %H:%M')
+    return bookingDatetime
+# deprecated
 phoneEventFp = p('phone-event.json')
 def addPhoneEventMapping(phone, eventId):
     fp = phoneEventFp

@@ -1,5 +1,5 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
-from utils import getSheetValues,findRow
+from utils import getSheetValues,findRow, getBookingDateFromEvent
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import requests
@@ -41,8 +41,7 @@ while True:
         print(row)
         phone = row[0]
         facebookid = row[3]
-        start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
-        bookingDatetime = start.strftime('%Y-%m-%dT%H:%M:%S')
+        bookingDatetime = getBookingDateFromEvent(event)
         msgFront = 'Hi %s, Your booking is %s.'%(row[1], bookingDatetime)
         if phone:
             # send sms

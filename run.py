@@ -1,6 +1,6 @@
 from flask import Flask, request
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
-from utils import createEvent, getGoogleSheetService, addPhoneEventMapping, getEventIdByPhone
+from utils import createEvent, getGoogleSheetService, getEventByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid
 from datetime import datetime
 from fbmq import Page, Template
@@ -64,7 +64,6 @@ def createEvents():
             ev = createEvent(*value[:-1])
             i = value[-1]
             phone = rows[i][0]
-            addPhoneEventMapping(phone, ev['id'])
 
         # save cleared
         if len(events) > 0:
@@ -185,8 +184,14 @@ def callback_1(payload, event):
     rows = getSheetValues()
     row = findRowByFbid(rows,sender_id)
     if row:
-        bookingInfo = 'Booking date: %s %s:%s'%(row[4], row[5], row[6])
-        page.send(sender_id, bookingInfo)
+        event = getEventByPhone(row[0])
+        if not event:
+            page.send(sender_id, 'No booking record found for you')
+            print('no booking record found', sender_id)
+        else:
+            bookingDatetime = getBookingDateFromEvent(event)
+            bookingInfo = 'Booking date: %s'%(bookingDatetime)
+            page.send(sender_id, bookingInfo)
     else:
         page.send(sender_id, 'No booking record found for you')
         print('no booking record found', sender_id)
@@ -198,15 +203,21 @@ def callback_2(payload, event):
     rows = getSheetValues()
     row = findRowByFbid(rows,sender_id)
     if row:
-        bookingInfo = 'Booking date: %s %s:%s'%(row[4], row[5], row[6])
-        buttons = [
-            {
-                "type": "postback",
-                "value": CONFIRM_CANCEL_MY_BOOKING,
-                "title": "Confirm to cancel my booking"
-            },
-        ]
-        page.send(sender_id, Template.Buttons(bookingInfo, buttons))
+        event = getEventByPhone(row[0])
+        if not event:
+            page.send(sender_id, 'No booking record found for you')
+            print('no booking record found', sender_id)
+        else:
+            bookingDatetime = getBookingDateFromEvent(event)
+            bookingInfo = 'Booking date: %s'%(bookingDatetime)
+            buttons = [
+                {
+                    "type": "postback",
+                    "value": CONFIRM_CANCEL_MY_BOOKING,
+                    "title": "Confirm to cancel my booking"
+                },
+            ]
+            page.send(sender_id, Template.Buttons(bookingInfo, buttons))
     else:
         page.send(sender_id, 'No booking record found for you')
         print('no booking record found', sender_id)
@@ -217,12 +228,15 @@ def callback_3(payload, event):
     print(CONFIRM_CANCEL_MY_BOOKING, sender_id)
     rows = getSheetValues()
     row = findRowByFbid(rows,sender_id)
-    phone = row[0]
-    calendarEvIds = getEventIdByPhone(phone)
-    service = getGoogleCalendarService()
-    for evid in calendarEvIds:
-        service.events().delete(calendarId='primary', eventId=evid).execute()
-    page.send(sender_id, 'Your booking on %s %s:%s was canclled.'%(row[4], row[5], row[6]))
+    event = getEventByPhone(row[0])
+    if not event:
+        page.send(sender_id, 'No booking record found for you')
+        print('no booking record found', sender_id)
+    else:
+        bookingDatetime = getBookingDateFromEvent(event)
+        service = getGoogleCalendarService()
+        service.events().delete(calendarId='primary', eventId=event['id']).execute()
+        page.send(sender_id, 'Your booking on %s was canclled.'%(bookingDatetime))
 
 @page.after_send
 def after_send(payload, response):
