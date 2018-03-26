@@ -37,7 +37,7 @@ def createEvents():
     rows = getSheetData()
     if rows:
         events = []
-        for i, row in enumerate(rows):
+        for i, row in enumerate(rows[1:]):
             # Print columns A and E, which correspond to indices 0 and 4.
             # print('%s, %s' % (row[0], row[4]))
             if len(row) > 7 and row[4] and row[5] and row[6] and row[7]:
