@@ -89,9 +89,13 @@ def getSheetData(rangeName = 'Sheet1'):
         print('No data found.')
     else:
         values = values[1:] # remove head
+
     return values
 
 def updateSheet(body, rangeName = 'Sheet1', valueInputOption='USER_ENTERED'):
+    if rangeName == 'Sheet1':
+        headRows = getSheetData('Sheet1!A1Q1')
+        body['values'] = headRows + body['values']
     spreadsheetId = SPREADSHEETID
     service = getGoogleSheetService()
     result = service.spreadsheets().values().update(
