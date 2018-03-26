@@ -214,7 +214,7 @@ def callback_2(payload, event):
                 buttons = [
                     {
                         "type": "postback",
-                        "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id'])
+                        "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
                         "title": "Confirm to cancel my booking"
                     },
                 ]
