@@ -16,6 +16,11 @@ def listGet(ls, index, default = None):
         return ls[index]
     except IndexError:
         return default
+        
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 def local2utc(dt):
     utc_st = dt.replace(tzinfo=timezone(TIMEZONE)).astimezone(timezone('UTC'))
@@ -128,9 +133,9 @@ def getEventsByPhone(phone):
 def getEventById(evid):
     service = getGoogleCalendarService()
     return service.events().get(calendarId='primary', eventId=evid).execute()
-def getBookingDateFromEvent(event):
+def getBookingDateFromEvent(event, fmt = '%Y-%m-%d %H:%M'):
     start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
-    bookingDatetime = start.strftime('%Y-%m-%d %H:%M')
+    bookingDatetime = start.strftime(fmt)
     return bookingDatetime
 # deprecated
 phoneEventFp = p('phone-event.json')
