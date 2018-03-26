@@ -224,13 +224,11 @@ def callback_2(payload, event):
                 for event in events:
                     bookingDatetime = getBookingDateFromEvent(event)
                     bookingInfo = 'Booking date: %s'%(bookingDatetime)
-                    buttons.append([
-                        {
-                            "type": "postback",
-                            "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
-                            "title": bookingInfo,
-                        },
-                    ])
+                    buttons.append({
+                        "type": "postback",
+                        "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
+                        "title": bookingInfo,
+                    })
                 page.send(sender_id, Template.Buttons('Confirm to cancel my booking', buttons))
     else:
         page.send(sender_id, 'No booking record found for you')
