@@ -5,8 +5,10 @@ from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, g
 from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
 from utils import listGet
 from datetime import datetime, timedelta
+import time
 from fbmq import Page, Template
 import re
+from googleapiclient.errors import HttpError
 from werkzeug.contrib.cache import SimpleCache
 cache = SimpleCache()
 
@@ -247,7 +249,15 @@ def callback_3(payload, event):
     else:
         bookingDatetime = getBookingDateFromEvent(event)
         service = getGoogleCalendarService()
-        service.events().delete(calendarId='primary', eventId=event['id']).execute()
+        try:
+            service.events().delete(calendarId='primary', eventId=event['id']).execute()
+        except HttpError as e:
+            if e.resp.status in [410]:
+                # already deleted
+                pass
+            else:
+                raise e
+        time.sleep(1)
         event = getEventById(evid)
         if event:
             page.send(sender_id, 'Failed to cancel the booking')
