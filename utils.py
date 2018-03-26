@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import time
 from pytz import timezone
 import json
+import calendar
 
 pj = path.join
 
@@ -25,7 +26,31 @@ def chunks(l, n):
 def local2utc(dt):
     utc_st = dt.replace(tzinfo=timezone(TIMEZONE)).astimezone(timezone('UTC'))
     return utc_st
+def utc2local(dt, tz = TIMEZONE):
+    return  dt.replace(tzinfo=timezone('UTC')).astimezone(timezone(tz))
+def getWeekDays(dt):
+    if not dt.tzinfo:
+        dt = dt.replace(tzinfo=timezone(TIMEZONE))
+    else:
+        dt = dt.astimezone(timezone(TIMEZONE))
+    # weekday of Monday is 0
+    monday = dt - timedelta(days=dt.weekday())
+    weekdays = [monday]
+    for i in range(1, 7):
+        weekdays.append(monday + timedelta(days=i))
+    return weekdays
 
+def addMonths(dt,months):
+    month = dt.month - 1 + months
+    year = dt.year + month // 12
+    month = month % 12 + 1
+    day = min(dt.day,calendar.monthrange(year,month)[1])
+    return dt.replace(year=year, month = month,day=day)
+
+def toTimestamp(dt):
+    return int(time.mktime(dt.timetuple()))
+def toDatetime(ts):
+    return datetime.datetime.fromtimestamp(ts)
 gcService = None
 def getGoogleCalendarService():
     global gcService
@@ -53,8 +78,29 @@ def getGoogleSheetService():
                                   discoveryServiceUrl=discoveryUrl)
     return gsService
 
+def getSheetData(rangeName = 'Sheet1'):
+    spreadsheetId = SPREADSHEETID
+    service = getGoogleSheetService()
+    result = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheetId, range=rangeName).execute()
+    values = result.get('values', [])
+    if not values:
+        values = []
+        print('No data found.')
+    else:
+        values = values[1:] # remove head
+    return values
+
+def updateSheet(body, rangeName = 'Sheet1', valueInputOption='USER_ENTERED'):
+    spreadsheetId = SPREADSHEETID
+    service = getGoogleSheetService()
+    result = service.spreadsheets().values().update(
+        spreadsheetId=spreadsheetId, range=rangeName,
+        valueInputOption=valueInputOption, body=body).execute()
+    print('{0} cells updated.'.format(result.get('updatedCells')))
+    return result
 # create google calendar event
-def createEvent(name, time, lastHours):
+def createEvent(name, time, lastHours=1):
     service = getGoogleCalendarService()
     endTime = time + timedelta(hours=lastHours)
     event = {
@@ -107,23 +153,25 @@ def getSheetValues(rangeName = 'Sheet1'):
     sheetRows = result.get('values', [])
     return sheetRows
 
-def findRow(rows, phone, colIndex = 0):
+def findRow(rows, q, colIndex = 0):
     # col 0 is phone, 3 is fbid
+    q = str(q)
     try:
-        return next(row for row in rows if row[colIndex] == phone)
+        return next(row for row in rows if row[colIndex] == q)
     except StopIteration as e:
         return None
+
 def findRowByFbid(*a):
-    return findRow(*a, 3)
+    return findRow(*a, 3) # pylint: disable=E1120
 
 def getEventsByPhone(phone):
     service = getGoogleCalendarService()
-    now = datetime.utcnow()
-    endTime = now + timedelta(hours=1)
-    now = now.isoformat() + 'Z' # 'Z' indicates UTC time
-    endTime = endTime.isoformat() + 'Z' # 'Z' indicates UTC time
+    today = utc2local(datetime.utcnow())
+    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    today = local2utc(today)
+    today = today.isoformat() + 'Z' # 'Z' indicates UTC time
     eventsResult = service.events().list(
-        calendarId='primary', singleEvents=True, q =phone,
+        calendarId='primary', singleEvents=True, q =phone, timeMin=today,
         orderBy='startTime').execute()
     events = eventsResult.get('items')
     if not events:

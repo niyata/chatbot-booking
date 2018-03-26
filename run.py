@@ -2,8 +2,12 @@ from flask import Flask, request
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
-from datetime import datetime
+from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
+from datetime import datetime, timedelta
 from fbmq import Page, Template
+import re
+from werkzeug.contrib.cache import SimpleCache
+cache = SimpleCache()
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
@@ -13,6 +17,8 @@ VIEW_MY_BOOKING = 'VIEW_MY_BOOKING'
 CANCEL_MY_BOOKING = 'CANCEL_MY_BOOKING'
 CONFIRM_CANCEL_MY_BOOKING = 'CONFIRM_CANCEL_MY_BOOKING'
 MAKE_A_BOOKING = 'MAKE_A_BOOKING'
+CHOOSE_A_WEEK = 'CHOOSE_A_WEEK'
+CHOOSE_A_DAY = 'CHOOSE_A_DAY'
 
 # init app
 app = Flask(__name__)
@@ -27,17 +33,8 @@ def hello():
 
 @app.route("/create-events")
 def createEvents():
-    spreadsheetId = SPREADSHEETID
-    rangeName = 'Sheet1'
-    service = getGoogleSheetService()
-    result = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheetId, range=rangeName).execute()
-    values = result.get('values', [])
-
-    if not values:
-        print('No data found.')
-    else:
-        rows = values[1:]
+    rows = getSheetData()
+    if rows:
         events = []
         for i, row in enumerate(rows):
             # Print columns A and E, which correspond to indices 0 and 4.
@@ -61,19 +58,14 @@ def createEvents():
                 row[7] = ''
         #
         for value in events:
-            ev = createEvent(*value[:-1])
-            i = value[-1]
-            phone = rows[i][0]
+            createEvent(*value[:-1])
 
         # save cleared
         if len(events) > 0:
             body = {
-                'values': values
+                'values': rows
             }
-            result = service.spreadsheets().values().update(
-                spreadsheetId=spreadsheetId, range=rangeName,
-                valueInputOption='USER_ENTERED', body=body).execute()
-            print('{0} cells updated.'.format(result.get('updatedCells')))
+            updateSheet(body)
     return 'ok'
 
 # facebook
@@ -97,7 +89,10 @@ def webhook():
     return "ok"
 
 
-def send_buttons(sender_id):
+def sendButtons(to_id, title, buttons):
+    for value in chunks(buttons, 3):
+        page.send(to_id, Template.Buttons(title, value))
+def sendStartButtons(sender_id):
     buttons = [
         {
             "type": "postback",
@@ -115,16 +110,36 @@ def send_buttons(sender_id):
             "title": "Make a booking"
         },
     ]
-    page.send(sender_id, Template.Buttons("hello", buttons))
+    sendButtons(sender_id, buttons, 'hello')
 
 @page.handle_message
 def message_handler(event):
     """:type event: fbmq.Event"""
-    sender_id = event.sender_id
-    # message = event.message_text
-    # page.send(sender_id, "thank you! your message is '%s'" % message)
+    sender_id = event.sender_id 
+    message = event.message_text
     print('receive msg', sender_id)
-    send_buttons(sender_id)
+    if re.match(r'^\d\d?-\d\d?$', message):
+        # date
+        m,d = message.split('-')
+        m = int(m)
+        d = int(d)
+        dt = utc2local(datetime.utcnow())
+        try:
+            dt = addMonths(dt, 1)
+        except Exception as e:
+            page.send(sender_id, str(e))
+            return
+        if dt.month != m:
+            page.send(sender_id, 'Input date is not in next month')
+            return
+        dt = dt.replace(day=d)
+        setDate(dt, event)
+    elif re.match(r'^\d\d?:\d\d?$', message):
+        # time
+        h,m = message.split(':')
+        setTime([int(h), int(m)], event)
+    else:
+        sendStartButtons(sender_id)
 
 @page.handle_referral
 def handler2(event):
@@ -175,23 +190,22 @@ def handler2(event):
         else:
             print('no record found with given phone')
     print('no ref(phone) in hook event')
-    send_buttons(sender_id)
+    sendStartButtons(sender_id)
 
 @page.callback([VIEW_MY_BOOKING])
 def callback_1(payload, event):
     sender_id = event.sender_id
-    print(CANCEL_MY_BOOKING, sender_id)
+    print(payload, sender_id)
     rows = getSheetValues()
     row = findRowByFbid(rows,sender_id)
     if row:
-        event = getEventsByPhone(row[0])[0]
-        if not event:
+        events = getEventsByPhone(row[0])
+        if not events:
             page.send(sender_id, 'No booking record found for you')
             print('no booking record found', sender_id)
         else:
-            bookingDatetime = getBookingDateFromEvent(event)
-            bookingInfo = 'Booking date: %s'%(bookingDatetime)
-            page.send(sender_id, bookingInfo)
+            ls = ['Booking date: %s'%(getBookingDateFromEvent(event)) for event in events]
+            page.send(sender_id, '\n'.join(ls))
     else:
         page.send(sender_id, 'No booking record found for you')
         print('no booking record found', sender_id)
@@ -218,7 +232,7 @@ def callback_2(payload, event):
                         "title": "Confirm to cancel my booking"
                     },
                 ]
-                page.send(sender_id, Template.Buttons(bookingInfo, buttons))
+                sendButtons(sender_id, bookingInfo, buttons)
             else:
                 buttons = []
                 for event in events:
@@ -229,8 +243,8 @@ def callback_2(payload, event):
                         "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
                         "title": bookingInfo,
                     })
-                for value in chunks(buttons, 3):
-                    page.send(sender_id, Template.Buttons('Choose the one you want to cancel', value))
+
+                sendButtons(sender_id, 'Choose the one you want to cancel', buttons)
     else:
         page.send(sender_id, 'No booking record found for you')
         print('no booking record found', sender_id)
@@ -248,8 +262,76 @@ def callback_3(payload, event):
         bookingDatetime = getBookingDateFromEvent(event)
         service = getGoogleCalendarService()
         service.events().delete(calendarId='primary', eventId=event['id']).execute()
-        page.send(sender_id, 'Your booking on %s was canclled.'%(bookingDatetime))
+        event = getEventById(evid)
+        if event:
+            page.send(sender_id, 'Failed to cancel the booking')
+            print('Failed to cancel the booking', sender_id, event)
+        else:
+            page.send(sender_id, 'Your booking on %s was canclled.'%(bookingDatetime))
+            print('Booking canceled successfully', sender_id, event)
 
+@page.callback([MAKE_A_BOOKING])
+def callback_4(payload, event):
+    sender_id = event.sender_id
+    print(payload, sender_id)
+    buttons = []
+    titles = ['This week', 'Next week', 'Week after next', 'Week after next 2', 'Next month']
+    for i in range(5):
+        buttons.append({
+            "type": "postback",
+            "value": CHOOSE_A_WEEK + '_' + str(i),
+            "title": titles[i]
+        })
+    sendButtons(sender_id, 'Please choose', buttons)
+
+@page.callback([CHOOSE_A_WEEK + '_(\d)'])
+def callback_5(payload, event):
+    sender_id = event.sender_id
+    print(payload, sender_id)
+    n = int(payload[len(CHOOSE_A_WEEK) + 1:])
+    if n < 4:
+        # week
+        t = datetime.utcnow() + timedelta(weeks=n)
+        weekdays = getWeekDays(t)
+        buttons = [{"type": "postback", "value": CHOOSE_A_DAY + '_' + str(toTimestamp(v)), "title": v.strftime('%a (%m-%d)')} for v in weekdays]
+        sendButtons(sender_id, 'Please choose', buttons)
+    else:
+        # next month
+        page.send(sender_id, 'Please input the date as MM-DD 3-25')
+@page.callback([CHOOSE_A_DAY + '_(\d+)'])
+def callback_6(payload, event):
+    sender_id = event.sender_id
+    print(payload, sender_id)
+    n = int(payload[len(CHOOSE_A_DAY) + 1:])
+    dt = toDatetime(n)
+    return setDate(dt, event)
+
+def setDate(dt, event):
+    sender_id = event.sender_id
+    print('set date', sender_id)
+    cache.set(sender_id + '_date', str(toTimestamp(dt)), timeout=60 * 60)
+    page.send(sender_id, 'Please input the time as hh:mm (24hour) 14:30')
+
+def setTime(timeList, event):
+    sender_id = event.sender_id
+    print('set time', sender_id)
+    t = cache.get(sender_id + '_date')
+    if not t:
+        page.send(sender_id, 'Please set date before set time')
+        return
+    dt = toDatetime(int(t))
+    h, m = timeList
+    dt = dt.replace(hour=h, minute=m, second=0, microsecond=0)
+    rows = getSheetData()
+    if rows:
+        row = findRowByFbid(rows,sender_id)
+        if not row:
+            page.send(sender_id, 'Cant found record with your id')
+            return
+        createEvent('%s %s (%s)' %(row[0], row[1], row[2]), dt)
+        page.send(sender_id, 'Thank you! Your booking was made successfully')
+
+    
 @page.after_send
 def after_send(payload, response):
     """:type payload: fbmq.Payload"""
