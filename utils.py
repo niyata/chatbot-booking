@@ -11,6 +11,11 @@ pj = path.join
 def p(pt):
     return pj(path.dirname(__file__), pt)
 
+def listGet(ls, index, default = None):
+    try:
+        return ls[index]
+    except IndexError:
+        return default
 
 def local2utc(dt):
     utc_st = dt.replace(tzinfo=timezone(TIMEZONE)).astimezone(timezone('UTC'))
@@ -106,7 +111,7 @@ def findRow(rows, phone, colIndex = 0):
 def findRowByFbid(*a):
     return findRow(*a, 3)
 
-def getEventByPhone(phone):
+def getEventsByPhone(phone):
     service = getGoogleCalendarService()
     now = datetime.utcnow()
     endTime = now + timedelta(hours=1)
@@ -115,10 +120,14 @@ def getEventByPhone(phone):
     eventsResult = service.events().list(
         calendarId='primary', singleEvents=True, q =phone,
         orderBy='startTime').execute()
-    events = eventsResult.get('items', [])
+    events = eventsResult.get('items')
     if not events:
         return None
-    return events[0]
+    events.reverse()
+    return events
+def getEventById(evid):
+    service = getGoogleCalendarService()
+    return service.events().get(calendarId='primary', eventId=evid).execute()
 def getBookingDateFromEvent(event):
     start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
     bookingDatetime = start.strftime('%Y-%m-%d %H:%M')
