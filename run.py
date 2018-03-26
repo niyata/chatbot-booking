@@ -113,7 +113,7 @@ def sendStartButtons(sender_id):
             "title": "Make a booking"
         },
     ]
-    sendButtons(sender_id, buttons, 'hello')
+    sendButtons(sender_id, 'hello', buttons)
 
 @page.handle_message
 def message_handler(event):
