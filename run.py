@@ -209,7 +209,7 @@ def callback_2(payload, event):
             print('no booking record found', sender_id)
         else:
             if len(events) == 1:
-                bookingDatetime = getBookingDateFromEvent(event)
+                bookingDatetime = getBookingDateFromEvent(events[0])
                 bookingInfo = 'Booking date: %s'%(bookingDatetime)
                 buttons = [
                     {
