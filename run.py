@@ -3,6 +3,7 @@ from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKE
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
 from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
+from utils import listGet
 from datetime import datetime, timedelta
 from fbmq import Page, Template
 import re
@@ -150,25 +151,12 @@ def handler2(event):
         phone = event.referral['ref']
     except Exception as e:
         phone = None
-    if ref:
+    if phone:
         print('phone', phone)
-        # get sheet
-        service = getGoogleSheetService()
-        spreadsheetId = SPREADSHEETID
-        rangeName = 'Sheet1'
-        service = getGoogleSheetService()
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheetId, range=rangeName).execute()
-        sheetRows = result.get('values', [])
-
-        def findRow(phone):
-            try:
-                return next(row for row in sheetRows if row[0] == phone)
-            except StopIteration as e:
-                return None
-        row = findRow(phone)
+        sheetRows = getSheetData()
+        row = findRow(sheetRows, phone)
         if row:
-            if row[3]:
+            if listGet(row, 3):
                 print('record already has facebook id')
             else:
                 print('store facebook id in google sheet')
@@ -183,9 +171,7 @@ def handler2(event):
                 }
                 rowIndex = sheetRows.index(row)
                 rangeName = 'Sheet1!D%s:D%s' % (rowIndex, rowIndex)
-                result = service.spreadsheets().values().update(
-                    spreadsheetId=spreadsheetId, range=rangeName,
-                    valueInputOption='USER_ENTERED', body=body).execute()
+                updateSheet(body, rangeName)
                 print('facebook id stored in google sheet')
         else:
             print('no record found with given phone')
@@ -284,7 +270,7 @@ def callback_4(payload, event):
         })
     sendButtons(sender_id, 'Please choose', buttons)
 
-@page.callback([CHOOSE_A_WEEK + '_(\d)'])
+@page.callback([CHOOSE_A_WEEK + r'_(\d)'])
 def callback_5(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
@@ -298,7 +284,7 @@ def callback_5(payload, event):
     else:
         # next month
         page.send(sender_id, 'Please input the date as MM-DD 3-25')
-@page.callback([CHOOSE_A_DAY + '_(\d+)'])
+@page.callback([CHOOSE_A_DAY + r'_(\d+)'])
 def callback_6(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
