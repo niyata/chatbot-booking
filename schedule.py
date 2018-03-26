@@ -2,9 +2,12 @@ from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
 from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
-import requests
 import time
 import urllib.parse
+from fbmq import Page, Template
+
+# fbmq page
+page = Page(fb_PAGE_ACCESS_TOKEN)
 
 
 while True:
@@ -52,15 +55,6 @@ while True:
             print('sms sent', msg)
         if facebookid:
             # send fb msg
-            msgDict = {
-                "messaging_type": "RESPONSE",
-                "recipient": {
-                    "id": facebookid
-                },
-                "message": {
-                    "text": msgFront,
-                }
-            }
-            r = requests.post('https://graph.facebook.com/v2.6/me/messages?access_token=%s'%(fb_PAGE_ACCESS_TOKEN), json=msgDict)
-            print('fb message sent', r.text)
+            page.send(facebookid, msgFront)
+            print('fb message sent', msgFront)
     time.sleep(schedule_delay)
