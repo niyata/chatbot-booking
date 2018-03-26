@@ -1,5 +1,5 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
-from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet
+from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet, getGoogleStrTime
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import time
@@ -15,8 +15,8 @@ while True:
     service = getGoogleCalendarService()
     now = datetime.utcnow()
     endTime = now + timedelta(hours=1)
-    now = now.isoformat() + 'Z' # 'Z' indicates UTC time
-    endTime = endTime.isoformat() + 'Z' # 'Z' indicates UTC time
+    now = getGoogleStrTime(now)
+    endTime = getGoogleStrTime(endTime)
     eventsResult = service.events().list(
         calendarId='primary', timeMin=now, timeMax= endTime, maxResults=2500, singleEvents=True,
         orderBy='startTime').execute()

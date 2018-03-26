@@ -163,13 +163,14 @@ def findRow(rows, q, colIndex = 0):
 
 def findRowByFbid(*a):
     return findRow(*a, 3) # pylint: disable=E1120
-
+def getGoogleStrTime(dt):
+    return dt.replace(tzinfo=None).isoformat() + 'Z' # 'Z' indicates UTC time
 def getEventsByPhone(phone):
     service = getGoogleCalendarService()
     today = utc2local(datetime.utcnow())
     today = today.replace(hour=0, minute=0, second=0, microsecond=0)
     today = local2utc(today)
-    today = today.isoformat() + 'Z' # 'Z' indicates UTC time
+    today = getGoogleStrTime(today)
     eventsResult = service.events().list(
         calendarId='primary', singleEvents=True, q =phone, timeMin=today,
         orderBy='startTime').execute()
