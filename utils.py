@@ -94,7 +94,7 @@ def getSheetData(rangeName = 'Sheet1'):
 
 def updateSheet(body, rangeName = 'Sheet1', valueInputOption='USER_ENTERED'):
     if rangeName == 'Sheet1':
-        headRows = getSheetData('Sheet1!A1Q1')
+        headRows = getSheetData('Sheet1!A:A')
         body['values'] = headRows + body['values']
     spreadsheetId = SPREADSHEETID
     service = getGoogleSheetService()
