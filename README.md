@@ -25,7 +25,7 @@ kill `cat .pid`
 # run(test)
 python schedule.py
 # run(background)
-nohup python schedule.py &  
+nohup python schedule.py &
 # kill background
 kill $(ps aux | grep '[p]ython schedule.py' | awk '{print $2}')
 ```
