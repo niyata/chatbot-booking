@@ -1,17 +1,34 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
 from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet, getGoogleStrTime
+from utils import utc2local, p
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import time
 import urllib.parse
 from fbmq import Page, Template
+import logging
+from logging.handlers import TimedRotatingFileHandler
+
+# logger
+LOG_FILE = p('schedule.log')
+#logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',datefmt='%Y-%m-%d %I:%M:%S',filemode='w')   #for term print
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+fh = TimedRotatingFileHandler(LOG_FILE,when='M',interval=1,backupCount=30)
+datefmt = '%Y-%m-%d %H:%M:%S'
+format_str = '%(asctime)s %(levelname)s %(message)s '
+#formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+formatter = logging.Formatter(format_str, datefmt)
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
 
 
 while True:
-    print('Getting the upcoming events')
+    logger.info('wake up')
+    logger.info('Getting the upcoming events')
     service = getGoogleCalendarService()
     now = datetime.utcnow()
     endTime = now + timedelta(hours=1)
@@ -23,7 +40,7 @@ while True:
     events = eventsResult.get('items', [])
 
     if not events:
-        print('No upcoming events found.')
+        logger.info('No upcoming events found.')
 
     # get sheet
     spreadsheetId = SPREADSHEETID
@@ -39,9 +56,8 @@ while True:
         name = ls[1]
         row = findRow(sheetRows, phone)
         if not row:
-            print('row not found for event: %s'%(event['summary']))
+            logger.info('row not found for event: %s'%(event['summary']))
             continue
-        print(row)
         phone = row[0]
         facebookid = listGet(row, 3)
         bookingDatetime = getBookingDateFromEvent(event)
@@ -52,9 +68,9 @@ while True:
             link = 'http://m.me/498812477183171?ref='+(phone if not facebookid else '')
             msg = msgFront + ' For more info pleaes check out our chatbot %s.'%(link)
             sendSms(phone, msg)
-            print('sms sent', msg)
+            logger.info('sms sent: ' + msg)
         if facebookid:
             # send fb msg
             page.send(facebookid, msgFront)
-            print('fb message sent', msgFront)
+            logger.info('fb message sent:' + msgFront)
     time.sleep(schedule_delay)
