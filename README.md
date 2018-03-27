@@ -14,11 +14,9 @@ python get_credentials.py --noauth_local_webserver
 # run(test)
 python run.py
 # run(background)
-gunicorn run:app -p .pid -D -c gunicorn-config.py
-gunicorn run:app -c gunicorn-config.py
-gunicorn --config=gunicorn-config.py run:app
+sudo supervisorctl start tornado-server
 # kill background
-kill `cat .pid`
+sudo supervisorctl stop tornado-server
 ```
 
 ### schedule
@@ -28,7 +26,22 @@ kill `cat .pid`
 # run(test)
 python schedule.py
 # run(background)
-nohup python schedule.py &
+sudo supervisorctl start schedule
 # kill background
-kill $(ps aux | grep '[p]ython schedule.py' | awk '{print $2}')
+sudo supervisorctl stop schedule
+```
+
+## about supervisord
+```sh
+# config file is /etc/supervisor/supervisord.conf /etc/supervisor/conf.d/chatbot-booking.conf
+# start supervisord(if config changed, you need stop and start supervisord)
+sudo supervisord -c /etc/supervisor/supervisord.conf
+# stop supervisord
+sudo unlink /var/run/supervisor.sock
+# start tornado-server(run.py)
+sudo supervisorctl start tornado-server
+# start schedule
+sudo supervisorctl start schedule
+# more
+sudo supervisorctl start/restart/stop program-name(defined in config)
 ```

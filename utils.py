@@ -190,7 +190,7 @@ def getLogger(fp):
     LOG_FILE = fp
     #logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',datefmt='%Y-%m-%d %I:%M:%S',filemode='w')   #for term print
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.WARN)
     fh = TimedRotatingFileHandler(LOG_FILE,when='M',interval=1,backupCount=30)
     datefmt = '%Y-%m-%d %H:%M:%S'
     format_str = '%(asctime)s %(levelname)s %(message)s '

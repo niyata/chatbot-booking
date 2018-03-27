@@ -40,7 +40,6 @@ def hello():
 @app.route("/create-events")
 def createEvents():
     rows = getSheetData()
-    return 'ok'
     if rows:
         events = []
         for i, row in enumerate(rows[1:]):
