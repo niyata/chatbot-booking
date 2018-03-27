@@ -183,6 +183,22 @@ def getBookingDateFromEvent(event, fmt = '%Y-%m-%d %H:%M'):
     start = datetime.strptime(event['start']['dateTime'][:19], "%Y-%m-%dT%H:%M:%S")
     bookingDatetime = start.strftime(fmt)
     return bookingDatetime
+def getLogger(fp):
+    import logging
+    from logging.handlers import TimedRotatingFileHandler
+    # logger
+    LOG_FILE = fp
+    #logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',datefmt='%Y-%m-%d %I:%M:%S',filemode='w')   #for term print
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    fh = TimedRotatingFileHandler(LOG_FILE,when='M',interval=1,backupCount=30)
+    datefmt = '%Y-%m-%d %H:%M:%S'
+    format_str = '%(asctime)s %(levelname)s %(message)s '
+    #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    formatter = logging.Formatter(format_str, datefmt)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
 # deprecated
 phoneEventFp = p('phone-event.json')
 def addPhoneEventMapping(phone, eventId):

@@ -1,3 +1,5 @@
+app_host = '127.0.0.1'
+app_port = 8082
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Chatbot Booking'
 TIMEZONE = 'Asia/Hong_Kong'

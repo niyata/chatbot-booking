@@ -4,7 +4,6 @@ click==6.7
 fbmq==2.4.4
 Flask==0.12.2
 google-api-python-client==1.6.5
-gunicorn==19.7.1
 httplib2==0.10.3
 idna==2.6
 itsdangerous==0.24
@@ -19,6 +18,7 @@ pytz==2018.3
 requests==2.18.4
 rsa==3.4.2
 six==1.11.0
+tornado==5.0.1
 twilio==6.10.5
 uritemplate==3.0.0
 urllib3==1.22

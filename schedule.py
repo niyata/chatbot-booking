@@ -1,26 +1,13 @@
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
 from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet, getGoogleStrTime
-from utils import utc2local, p
+from utils import utc2local, p, getLogger
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import time
 import urllib.parse
 from fbmq import Page, Template
-import logging
-from logging.handlers import TimedRotatingFileHandler
 
-# logger
-LOG_FILE = p('schedule.log')
-#logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',datefmt='%Y-%m-%d %I:%M:%S',filemode='w')   #for term print
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-fh = TimedRotatingFileHandler(LOG_FILE,when='M',interval=1,backupCount=30)
-datefmt = '%Y-%m-%d %H:%M:%S'
-format_str = '%(asctime)s %(levelname)s %(message)s '
-#formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-formatter = logging.Formatter(format_str, datefmt)
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+logger = getLogger(p('schedule.log'))
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)

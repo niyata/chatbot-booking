@@ -15,6 +15,8 @@ python get_credentials.py --noauth_local_webserver
 python run.py
 # run(background)
 gunicorn run:app -p .pid -D -c gunicorn-config.py
+gunicorn run:app -c gunicorn-config.py
+gunicorn --config=gunicorn-config.py run:app
 # kill background
 kill `cat .pid`
 ```

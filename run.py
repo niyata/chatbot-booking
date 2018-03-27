@@ -1,9 +1,10 @@
 from flask import Flask, request
+from config import app_host, app_port
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
 from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
-from utils import listGet
+from utils import listGet, getLogger, p
 from datetime import datetime, timedelta
 import time
 from fbmq import Page, Template
@@ -11,6 +12,8 @@ import re
 from googleapiclient.errors import HttpError
 from werkzeug.contrib.cache import SimpleCache
 cache = SimpleCache()
+
+logger = getLogger(p('run.log'))
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
@@ -37,6 +40,7 @@ def hello():
 @app.route("/create-events")
 def createEvents():
     rows = getSheetData()
+    return 'ok'
     if rows:
         events = []
         for i, row in enumerate(rows[1:]):
@@ -335,4 +339,4 @@ def after_send(payload, response):
 
 # bootstrap app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8082, debug=True, threaded=True)
+    app.run(host=app_host, port=app_port, debug=True, threaded=True)
