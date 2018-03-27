@@ -6,12 +6,12 @@ from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import time
 import urllib.parse
 from fbmq import Page, Template
+import lang
 
 logger = getLogger(p('logs/schedule.log'))
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
-
 
 while True:
     logger.info('wake up')
@@ -48,12 +48,13 @@ while True:
         phone = row[0]
         facebookid = listGet(row, 3)
         bookingDatetime = getBookingDateFromEvent(event)
-        msgFront = 'Hi %s, Your booking is %s.'%(row[1], bookingDatetime)
+        msgFront = lang.trans(facebookid, 'your_booking_is')%(row[1], bookingDatetime)
+
         if phone:
             # send sms
             # link = 'https://www.messenger.com/t/498812477183171?%s'%(urllib.parse.urlencode(params))
             link = 'http://m.me/498812477183171?ref='+(phone if not facebookid else '')
-            msg = msgFront + ' For more info pleaes check out our chatbot %s.'%(link)
+            msg = msgFront + ' ' + lang.trans(facebookid, 'pls_check_chatbot')%(link)
             sendSms(phone, msg)
             logger.info('sms sent: ' + msg)
         if facebookid:

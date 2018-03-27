@@ -10,6 +10,7 @@ import time
 from fbmq import Page, Template
 import re
 from googleapiclient.errors import HttpError
+import lang
 from werkzeug.contrib.cache import SimpleCache
 cache = SimpleCache()
 
@@ -25,13 +26,15 @@ CONFIRM_CANCEL_MY_BOOKING = 'CONFIRM_CANCEL_MY_BOOKING'
 MAKE_A_BOOKING = 'MAKE_A_BOOKING'
 CHOOSE_A_WEEK = 'CHOOSE_A_WEEK'
 CHOOSE_A_DAY = 'CHOOSE_A_DAY'
+CHOOSE_LANGUAGE = 'CHOOSE_LANGUAGE'
 
 # init app
 app = Flask(__name__)
 
+def sendMsg(sender_id, name):
+    return page.send(sender_id, lang.trans(sender_id, name))
+
 # actions
-
-
 @app.route("/")
 def hello():
     return "Hello World!"
@@ -98,30 +101,57 @@ def webhook():
 def sendButtons(to_id, title, buttons):
     for value in chunks(buttons, 3):
         page.send(to_id, Template.Buttons(title, value))
-def sendStartButtons(sender_id):
+
+def start(event):
+    sender_id = event.sender_id
+    locale = cache.get(sender_id + '_locale')
+    if not locale:
+        sendLanguagePicker(sender_id)
+    else:
+        buttons = [
+            {
+                "type": "postback",
+                "value": VIEW_MY_BOOKING,
+                "title": lang.trans(sender_id, 'view_booking'),
+            },
+            {
+                "type": "postback",
+                "value": CANCEL_MY_BOOKING,
+                "title": lang.trans(sender_id, 'cancel_booking'),
+            },
+            {
+                "type": "postback",
+                "value": MAKE_A_BOOKING,
+                "title": lang.trans(sender_id, 'make_booking'),
+            },
+        ]
+        sendButtons(sender_id, 'hello', buttons)
+def sendLanguagePicker(sender_id):
     buttons = [
-        {
-            "type": "postback",
-            "value": VIEW_MY_BOOKING,
-            "title": "View my booking"
-        },
-        {
-            "type": "postback",
-            "value": CANCEL_MY_BOOKING,
-            "title": "Cancel my booking"
-        },
-        {
-            "type": "postback",
-            "value": MAKE_A_BOOKING,
-            "title": "Make a booking"
-        },
-    ]
-    sendButtons(sender_id, 'hello', buttons)
+            {
+                "type": "postback",
+                "value": CHOOSE_LANGUAGE + '_en',
+                "title": "English"
+            },
+            {
+                "type": "postback",
+                "value": CHOOSE_LANGUAGE + '_zh',
+                "title": "中文"
+            },
+        ]
+    sendButtons(sender_id, 'pls_choose_language', buttons)
+@page.callback([CHOOSE_LANGUAGE + '_(.+)'])
+def choose_language(payload, event):
+    sender_id = event.sender_id
+    print(payload, sender_id)
+    locale = payload[len(CHOOSE_LANGUAGE) + 1:]
+    cache.set(sender_id + '_locale', locale, timeout=0)
+    start(event)
 
 @page.handle_message
 def message_handler(event):
     """:type event: fbmq.Event"""
-    sender_id = event.sender_id 
+    sender_id = event.sender_id
     message = event.message_text
     print('receive msg', sender_id)
     if re.match(r'^\d\d?-\d\d?$', message):
@@ -133,10 +163,10 @@ def message_handler(event):
         try:
             dt = addMonths(dt, 1)
         except Exception as e:
-            page.send(sender_id, str(e))
+            sendMsg(sender_id, 'date_invalid')
             return
         if dt.month != m:
-            page.send(sender_id, 'Input date is not in next month')
+            sendMsg(sender_id, 'date_not_next_month')
             return
         dt = dt.replace(day=d)
         setDate(dt, event)
@@ -145,7 +175,11 @@ def message_handler(event):
         h,m = message.split(':')
         setTime([int(h), int(m)], event)
     else:
-        sendStartButtons(sender_id)
+        t = message.lower()
+        if 'language' in t or 'locale' in t or '语言' in t:
+            sendLanguagePicker(sender_id)
+        else:
+            start(event)
 
 @page.handle_referral
 def handler2(event):
@@ -181,7 +215,7 @@ def handler2(event):
         else:
             print('no record found with given phone')
     print('no ref(phone) in hook event')
-    sendStartButtons(sender_id)
+    start(event)
 
 @page.callback([VIEW_MY_BOOKING])
 def callback_1(payload, event):
@@ -192,14 +226,14 @@ def callback_1(payload, event):
     if row:
         events = getEventsByPhone(row[0])
         if not events:
-            page.send(sender_id, 'No booking record found for you')
+            sendMsg(sender_id, 'no_record')
             print('no booking record found', sender_id)
         else:
-            ls = ['Booking date: %s'%(getBookingDateFromEvent(event)) for event in events]
+            bkdt = lang.trans(sender_id, 'booking_date')
+            ls = ['%s: %s'%(bkdt, getBookingDateFromEvent(event)) for event in events]
             page.send(sender_id, '\n'.join(ls))
     else:
-        page.send(sender_id, 'No booking record found for you')
-        print('no booking record found', sender_id)
+        sendMsg(sender_id, 'no_record')
 
 @page.callback([CANCEL_MY_BOOKING])
 def callback_2(payload, event):
@@ -210,17 +244,19 @@ def callback_2(payload, event):
     if row:
         events = getEventsByPhone(row[0])
         if not events:
-            page.send(sender_id, 'No booking record found for you')
+            sendMsg(sender_id, 'no_record')
             print('no booking record found', sender_id)
         else:
             if len(events) == 1:
                 bookingDatetime = getBookingDateFromEvent(events[0])
-                bookingInfo = 'Booking date: %s'%(bookingDatetime)
+                bkdt = lang.trans(sender_id, 'booking_date')
+                bookingInfo = '%s: %s'%(bkdt, bookingDatetime)
                 buttons = [
                     {
                         "type": "postback",
                         "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
-                        "title": "Confirm to cancel my booking"
+                        "title": lang.trans(sender_id, 'confirm_cancel')
+
                     },
                 ]
                 sendButtons(sender_id, bookingInfo, buttons)
@@ -235,9 +271,9 @@ def callback_2(payload, event):
                         "title": bookingInfo,
                     })
 
-                sendButtons(sender_id, 'Choose the one you want to cancel', buttons)
+                sendButtons(sender_id, 'choose_cancel', buttons)
     else:
-        page.send(sender_id, 'No booking record found for you')
+        sendMsg(sender_id, 'no_record')
         print('no booking record found', sender_id)
 
 @page.callback([CONFIRM_CANCEL_MY_BOOKING + '_(.+)'])
@@ -247,7 +283,7 @@ def callback_3(payload, event):
     evid = payload[len(CONFIRM_CANCEL_MY_BOOKING) + 1:]
     event = getEventById(evid)
     if not event:
-        page.send(sender_id, 'No booking record found for you')
+        sendMsg(sender_id, 'no_record')
         print('no booking record found', sender_id)
     else:
         bookingDatetime = getBookingDateFromEvent(event)
@@ -263,10 +299,10 @@ def callback_3(payload, event):
         time.sleep(1)
         event = getEventById(evid)
         if event:
-            page.send(sender_id, 'Failed to cancel the booking')
+            sendMsg(sender_id, 'failed_cancel')
             print('Failed to cancel the booking', sender_id, event)
         else:
-            page.send(sender_id, 'Your booking on %s was canclled.'%(bookingDatetime))
+            page.send(sender_id, lang.trans(sender_id, 'cancelled_successfully')%(bookingDatetime))
             print('Booking canceled successfully', sender_id, event)
 
 @page.callback([MAKE_A_BOOKING])
@@ -274,14 +310,15 @@ def callback_4(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
     buttons = []
-    titles = ['This week', 'Next week', 'Week after next', 'Week after next 2', 'Next month']
+    titles = ['this_week', 'next_week', 'week_after_next', 'week_after_next2', 'next_month']
+    titles = [lang.trans(sender_id, v) for v in titles]
     for i in range(5):
         buttons.append({
             "type": "postback",
             "value": CHOOSE_A_WEEK + '_' + str(i),
             "title": titles[i]
         })
-    sendButtons(sender_id, 'Please choose', buttons)
+    sendButtons(sender_id, 'pls_choose', buttons)
 
 @page.callback([CHOOSE_A_WEEK + r'_(\d)'])
 def callback_5(payload, event):
@@ -293,10 +330,10 @@ def callback_5(payload, event):
         t = datetime.utcnow() + timedelta(weeks=n)
         weekdays = getWeekDays(t)
         buttons = [{"type": "postback", "value": CHOOSE_A_DAY + '_' + str(toTimestamp(v)), "title": v.strftime('%a (%m-%d)')} for v in weekdays]
-        sendButtons(sender_id, 'Please choose', buttons)
+        sendButtons(sender_id, 'pls_choose', buttons)
     else:
         # next month
-        page.send(sender_id, 'Please input the date as MM-DD 3-25')
+        sendMsg(sender_id, 'pls_input_date')
 @page.callback([CHOOSE_A_DAY + r'_(\d+)'])
 def callback_6(payload, event):
     sender_id = event.sender_id
@@ -309,14 +346,14 @@ def setDate(dt, event):
     sender_id = event.sender_id
     print('set date', sender_id)
     cache.set(sender_id + '_date', str(toTimestamp(dt)), timeout=60 * 60)
-    page.send(sender_id, 'Please input the time as hh:mm (24hour) 14:30')
+    sendMsg(sender_id, 'pls_input_time')
 
 def setTime(timeList, event):
     sender_id = event.sender_id
     print('set time', sender_id)
     t = cache.get(sender_id + '_date')
     if not t:
-        page.send(sender_id, 'Please set date before set time')
+        sendMsg(sender_id, 'pls_set_date_before_time')
         return
     dt = toDatetime(int(t))
     h, m = timeList
@@ -325,12 +362,12 @@ def setTime(timeList, event):
     if rows:
         row = findRowByFbid(rows,sender_id)
         if not row:
-            page.send(sender_id, 'Cant found record with your id')
+            sendMsg(sender_id, 'no_record')
             return
         createEvent('%s %s (%s)' %(row[0], row[1], row[2]), dt)
-        page.send(sender_id, 'Thank you! Your booking was made successfully')
+        sendMsg(sender_id, 'booked_successfully')
 
-    
+
 @page.after_send
 def after_send(payload, response):
     """:type payload: fbmq.Payload"""
