@@ -13,7 +13,7 @@ from googleapiclient.errors import HttpError
 from werkzeug.contrib.cache import SimpleCache
 cache = SimpleCache()
 
-logger = getLogger(p('run.log'))
+logger = getLogger(p('logs/run.log'))
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)

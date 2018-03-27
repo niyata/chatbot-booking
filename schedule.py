@@ -7,7 +7,7 @@ import time
 import urllib.parse
 from fbmq import Page, Template
 
-logger = getLogger(p('schedule.log'))
+logger = getLogger(p('logs/schedule.log'))
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
