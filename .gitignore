@@ -108,6 +108,10 @@ local/
 # gunicorn pid
 .pid
 
+# log
+*.log
+*.log.*
+
 # developer local
 info.txt
 borocol.cql
