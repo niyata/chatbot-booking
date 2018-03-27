@@ -50,7 +50,7 @@ def addMonths(dt,months):
 def toTimestamp(dt):
     return int(time.mktime(dt.timetuple()))
 def toDatetime(ts):
-    return datetime.datetime.fromtimestamp(ts)
+    return datetime.fromtimestamp(ts)
 gcService = None
 def getGoogleCalendarService():
     global gcService
