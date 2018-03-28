@@ -1,4 +1,6 @@
 from utils import userCacheGet, userCacheSet
+import logging
+
 lang = {
     'en': {
         'date_invalid': 'Input date is invalid',
@@ -58,12 +60,10 @@ lang = {
     },
 }
 
-def getTrans(logger):
-    def trans(sender_id, name):
-        locale = userCacheGet(sender_id, 'locale', 'cn')
-        t = lang[locale]
-        if name not in t:
-            if '_' in name and ' ' not in name:
-                logger.warn('trans may get wrong name: ' + name)
-        return t.get(name, name)
-    return trans
+def trans(sender_id, name):
+    locale = userCacheGet(sender_id, 'locale', 'cn')
+    t = lang[locale]
+    if name not in t:
+        if '_' in name and ' ' not in name:
+            logging.warn('trans may get wrong name: ' + name)
+    return t.get(name, name)

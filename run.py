@@ -1,3 +1,5 @@
+import init
+import logging
 from flask import Flask, request
 import config
 from config import app_host, app_port
@@ -5,25 +7,14 @@ from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKE
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
 from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
-from utils import listGet, getLogger, p, userCacheGet, userCacheSet
+from utils import listGet, p, userCacheGet, userCacheSet
 from datetime import datetime, timedelta
 import time
 from fbmq import Page, Template
 import re
 from googleapiclient.errors import HttpError
-import lang
-from cassandra.cqlengine import connection
+from lang import trans
 
-logger = getLogger(p('logs/run.log'))
-
-# connect databse
-try:
-    # lbp = None Cluster.__init__ called with contact_points specified, but no load_balancing_policy. In the next major version, this will raise an error; please specify a load-balancing policy.
-    connection.setup([config.db_host], config.db_keyspace, lazy_connect=True, lbp = None)
-    print("Make connection to DB lazily")
-except Exception as e:
-    print("Error: connection db failed")
-    raise
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
@@ -39,8 +30,6 @@ CHOOSE_LANGUAGE = 'CHOOSE_LANGUAGE'
 
 # init app
 app = Flask(__name__)
-
-trans = lang.getTrans(logger)
 
 def sendMsg(sender_id, name):
     return page.send(sender_id, trans(sender_id, name))
