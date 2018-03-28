@@ -1,3 +1,4 @@
+from utils import userCacheGet, userCacheSet
 lang = {
     'en': {
         'date_invalid': 'Input date is invalid',
@@ -25,6 +26,7 @@ lang = {
         'pls_choose_language': 'Please choose your language',
         'your_booking_is': 'Hi %s, Your booking is %s.',
         'pls_check_chatbot': 'For more info pleaes check out our chatbot %s.',
+        'booking': 'Booking',
     },
     'cn': {
         'date_invalid': '输入日期无效',
@@ -47,21 +49,21 @@ lang = {
         'next_week': '下周',
         'week_after_next': '下下周',
         'week_after_next2': '下下下周',
-        'next_month': '下个雨',
+        'next_month': '下个月',
         'pls_choose': '请选择',
         'pls_choose_language': '请选择您的语言',
         'your_booking_is': '%s您好, 您的预定是%s.',
         'pls_check_chatbot': '更多信息请查看我们的智能客服 %s.',
+        'booking': '预定',
     },
 }
-import run
 
-def trans(sender_id, name):
-    locale = run.app.cache.get(sender_id + '_locale')
-    if not locale:
-        locale = 'cn'
-    t = lang[locale]
-    if name not in t:
-        if name.index('_'):
-            run.logger.warn('trans may get wrong name: ' + name)
-    return t.get(name, name)
+def getTrans(logger):
+    def trans(sender_id, name):
+        locale = userCacheGet(sender_id, 'locale', 'cn')
+        t = lang[locale]
+        if name not in t:
+            if '_' in name and ' ' not in name:
+                logger.warn('trans may get wrong name: ' + name)
+        return t.get(name, name)
+    return trans

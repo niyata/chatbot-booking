@@ -45,3 +45,11 @@ sudo supervisorctl start schedule
 # more
 sudo supervisorctl start/restart/stop program-name(defined in config)
 ```
+
+## datebase cassandra
+```sh
+# create keyspace
+CREATE KEYSPACE chatbot_booking WITH replication = {'class':'SimpleStrategy', 'replication_factor' : 3};
+# make tables
+python sync_tables.py
+```

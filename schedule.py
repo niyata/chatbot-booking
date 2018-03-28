@@ -10,6 +10,7 @@ import lang
 
 logger = getLogger(p('logs/schedule.log'))
 
+trans = lang.getTrans(logger)
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
 
@@ -48,13 +49,13 @@ while True:
         phone = row[0]
         facebookid = listGet(row, 3)
         bookingDatetime = getBookingDateFromEvent(event)
-        msgFront = lang.trans(facebookid, 'your_booking_is')%(row[1], bookingDatetime)
+        msgFront = trans(facebookid, 'your_booking_is')%(row[1], bookingDatetime)
 
         if phone:
             # send sms
             # link = 'https://www.messenger.com/t/498812477183171?%s'%(urllib.parse.urlencode(params))
             link = 'http://m.me/498812477183171?ref='+(phone if not facebookid else '')
-            msg = msgFront + ' ' + lang.trans(facebookid, 'pls_check_chatbot')%(link)
+            msg = msgFront + ' ' + trans(facebookid, 'pls_check_chatbot')%(link)
             sendSms(phone, msg)
             logger.info('sms sent: ' + msg)
         if facebookid:

@@ -1,20 +1,28 @@
 from flask import Flask, request
+import config
 from config import app_host, app_port
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
 from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
 from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
-from utils import listGet, getLogger, p
+from utils import listGet, getLogger, p, userCacheGet, userCacheSet
 from datetime import datetime, timedelta
 import time
 from fbmq import Page, Template
 import re
 from googleapiclient.errors import HttpError
 import lang
-from werkzeug.contrib.cache import SimpleCache
-cache = SimpleCache()
+from cassandra.cqlengine import connection
 
 logger = getLogger(p('logs/run.log'))
+
+# connect databse
+try:
+    connection.setup([config.db_host], config.db_keyspace, lazy_connect=True)
+    print("Make connection to DB lazily")
+except Exception as e:
+    print("Error: connection db failed")
+    raise
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
@@ -31,8 +39,10 @@ CHOOSE_LANGUAGE = 'CHOOSE_LANGUAGE'
 # init app
 app = Flask(__name__)
 
+trans = lang.getTrans(logger)
+
 def sendMsg(sender_id, name):
-    return page.send(sender_id, lang.trans(sender_id, name))
+    return page.send(sender_id, trans(sender_id, name))
 
 # actions
 @app.route("/")
@@ -99,12 +109,15 @@ def webhook():
 
 
 def sendButtons(to_id, title, buttons):
-    for value in chunks(buttons, 3):
-        page.send(to_id, Template.Buttons(title, value))
+    title = trans(to_id, title)
+    for chunked in chunks(buttons, 3):
+        for btn in chunked:
+            btn['title'] = trans(to_id, btn['title'])
+        page.send(to_id, Template.Buttons(title, chunked))
 
 def start(event):
     sender_id = event.sender_id
-    locale = cache.get(sender_id + '_locale')
+    locale = userCacheGet(sender_id, 'locale')
     if not locale:
         sendLanguagePicker(sender_id)
     else:
@@ -112,17 +125,17 @@ def start(event):
             {
                 "type": "postback",
                 "value": VIEW_MY_BOOKING,
-                "title": lang.trans(sender_id, 'view_booking'),
+                "title": 'view_booking',
             },
             {
                 "type": "postback",
                 "value": CANCEL_MY_BOOKING,
-                "title": lang.trans(sender_id, 'cancel_booking'),
+                "title": 'cancel_booking',
             },
             {
                 "type": "postback",
                 "value": MAKE_A_BOOKING,
-                "title": lang.trans(sender_id, 'make_booking'),
+                "title": 'make_booking',
             },
         ]
         sendButtons(sender_id, 'hello', buttons)
@@ -145,7 +158,7 @@ def choose_language(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
     locale = payload[len(CHOOSE_LANGUAGE) + 1:]
-    cache.set(sender_id + '_locale', locale, timeout=0)
+    userCacheSet(sender_id, 'locale', locale)
     start(event)
 
 @page.handle_message
@@ -229,7 +242,7 @@ def callback_1(payload, event):
             sendMsg(sender_id, 'no_record')
             print('no booking record found', sender_id)
         else:
-            bkdt = lang.trans(sender_id, 'booking_date')
+            bkdt = trans(sender_id, 'booking_date')
             ls = ['%s: %s'%(bkdt, getBookingDateFromEvent(event)) for event in events]
             page.send(sender_id, '\n'.join(ls))
     else:
@@ -249,13 +262,13 @@ def callback_2(payload, event):
         else:
             if len(events) == 1:
                 bookingDatetime = getBookingDateFromEvent(events[0])
-                bkdt = lang.trans(sender_id, 'booking_date')
+                bkdt = trans(sender_id, 'booking_date')
                 bookingInfo = '%s: %s'%(bkdt, bookingDatetime)
                 buttons = [
                     {
                         "type": "postback",
                         "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
-                        "title": lang.trans(sender_id, 'confirm_cancel')
+                        "title": 'confirm_cancel'
 
                     },
                 ]
@@ -264,7 +277,7 @@ def callback_2(payload, event):
                 buttons = []
                 for event in events:
                     bookingDatetime = getBookingDateFromEvent(event, '%m-%d %H:%M')
-                    bookingInfo = 'Booking: %s'%(bookingDatetime)
+                    bookingInfo = trans(sender_id, 'booking') + ': ' + bookingDatetime
                     buttons.append({
                         "type": "postback",
                         "value": CONFIRM_CANCEL_MY_BOOKING + '_' + str(event['id']),
@@ -302,7 +315,7 @@ def callback_3(payload, event):
             sendMsg(sender_id, 'failed_cancel')
             print('Failed to cancel the booking', sender_id, event)
         else:
-            page.send(sender_id, lang.trans(sender_id, 'cancelled_successfully')%(bookingDatetime))
+            page.send(sender_id, trans(sender_id, 'cancelled_successfully')%(bookingDatetime))
             print('Booking canceled successfully', sender_id, event)
 
 @page.callback([MAKE_A_BOOKING])
@@ -311,7 +324,6 @@ def callback_4(payload, event):
     print(payload, sender_id)
     buttons = []
     titles = ['this_week', 'next_week', 'week_after_next', 'week_after_next2', 'next_month']
-    titles = [lang.trans(sender_id, v) for v in titles]
     for i in range(5):
         buttons.append({
             "type": "postback",
@@ -345,13 +357,13 @@ def callback_6(payload, event):
 def setDate(dt, event):
     sender_id = event.sender_id
     print('set date', sender_id)
-    cache.set(sender_id + '_date', str(toTimestamp(dt)), timeout=60 * 60)
+    userCacheSet(sender_id, 'date', str(toTimestamp(dt)))
     sendMsg(sender_id, 'pls_input_time')
 
 def setTime(timeList, event):
     sender_id = event.sender_id
     print('set time', sender_id)
-    t = cache.get(sender_id + '_date')
+    t = userCacheGet(sender_id, 'date')
     if not t:
         sendMsg(sender_id, 'pls_set_date_before_time')
         return

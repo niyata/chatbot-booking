@@ -6,6 +6,7 @@ import time
 from pytz import timezone
 import json
 import calendar
+import models
 
 pj = path.join
 
@@ -200,6 +201,23 @@ def getLogger(fp):
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     return logger
+def userCacheGet(id, name, default=None):
+    user = models.user.objects.filter(id=id).first()
+    cache = {} if not user else json.loads(user.cache)
+    return cache.get(name, default)
+def userCacheSet(id, name, value):
+    user = models.user.objects.filter(id=id).first()
+    if not user:
+        models.user.create(id=id, cache=json.dumps({}))
+    user = models.user.objects.filter(id=id).first()
+    cache = json.loads(user.cache)
+    if value == None:
+        if name in cache:
+            del cache[name]
+    else:
+        cache[name] = value
+    user.cache = json.dumps(cache)
+    user.save()
 # deprecated
 phoneEventFp = p('phone-event.json')
 def addPhoneEventMapping(phone, eventId):
