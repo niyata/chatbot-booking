@@ -13,7 +13,8 @@ import time
 from fbmq import Page, Template
 import re
 from googleapiclient.errors import HttpError
-from lang import trans
+from lang import trans, strfweekday
+import json
 
 
 # fbmq page
@@ -94,11 +95,17 @@ def validate():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    requestStr = request.get_data().decode('utf-8')
+    # e.g.: {"object":"page","entry":[{"id":"498812477183171","time":1522222835374,"messaging":[{"recipient":{"id":"498812477183171"},"timestamp":1522222835374,"sender":{"id":"1286804074753753"},"postback":{"payload":"CHOOSE_A_DAY_1522566413","title":"Sun (04-01)"}}]}]}
     # ignore encode error when facebook request data including utf8 chars
     try:
-        page.handle_webhook(request.get_data().decode('utf-8'))
+        page.handle_webhook(requestStr)
     except UnicodeEncodeError as e:
         pass
+    except:
+        sender_id = json.loads(requestStr).get('entry')[0]['messaging'][0]['sender']['id']
+        sendMsg(sender_id, 'sys_error')
+        logging.exception("Uncaught error in webhook")
     return "ok"
 
 
@@ -170,12 +177,16 @@ def message_handler(event):
         try:
             dt = addMonths(dt, 1)
         except Exception as e:
-            sendMsg(sender_id, 'date_invalid')
+            sendMsg(sender_id, 'invalid_date')
             return
         if dt.month != m:
             sendMsg(sender_id, 'date_not_next_month')
             return
-        dt = dt.replace(day=d)
+        try:
+            dt = dt.replace(day=d)
+        except:
+            sendMsg(sender_id, 'invalid_input')
+            return
         setDate(dt, event)
     elif re.match(r'^\d\d?:\d\d?$', message):
         # time
@@ -335,7 +346,7 @@ def callback_5(payload, event):
         # week
         t = datetime.utcnow() + timedelta(weeks=n)
         weekdays = getWeekDays(t)
-        buttons = [{"type": "postback", "value": CHOOSE_A_DAY + '_' + str(toTimestamp(v)), "title": v.strftime('%a (%m-%d)')} for v in weekdays]
+        buttons = [{"type": "postback", "value": CHOOSE_A_DAY + '_' + str(toTimestamp(v)), "title": strfweekday(sender_id, v, '%a (%m-%d)')} for v in weekdays]
         sendButtons(sender_id, 'pls_choose', buttons)
     else:
         # next month
@@ -363,7 +374,11 @@ def setTime(timeList, event):
         return
     dt = toDatetime(int(t))
     h, m = timeList
-    dt = dt.replace(hour=h, minute=m, second=0, microsecond=0)
+    try:
+        dt = dt.replace(hour=h, minute=m, second=0, microsecond=0)
+    except:
+        sendMsg(sender_id, 'invalid_input')
+        return
     rows = getSheetData()
     if rows:
         row = findRowByFbid(rows,sender_id)

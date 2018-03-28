@@ -3,7 +3,8 @@ import logging
 
 lang = {
     'en': {
-        'date_invalid': 'Input date is invalid',
+        'invalid_date': 'Input date is invalid',
+        'invalid_input': 'Input is invalid',
         'date_not_next_month': 'Input date is not in next month',
         'no_record': 'No booking record found for you',
         'booking_date': 'Booking date',
@@ -29,9 +30,11 @@ lang = {
         'your_booking_is': 'Hi %s, Your booking is %s.',
         'pls_check_chatbot': 'For more info pleaes check out our chatbot %s.',
         'booking': 'Booking',
+        'sys_error': 'System Error',
     },
     'zh': {
-        'date_invalid': '输入日期无效',
+        'invalid_date': '输入日期无效',
+        'invalid_input': '输入无效',
         'date_not_next_month': '输入的不是有效的下月日期',
         'no_record': '没有找到预订记录',
         'booking_date': '预订日期',
@@ -57,13 +60,26 @@ lang = {
         'your_booking_is': '%s您好, 您的预定是%s.',
         'pls_check_chatbot': '更多信息请查看我们的智能客服 %s.',
         'booking': '预定',
+        'sys_error': '系统错误',
     },
 }
 
-def trans(sender_id, name):
-    locale = userCacheGet(sender_id, 'locale', 'zh') if sender_id else 'zh'
+def getUserLocale(id):
+    return userCacheGet(id, 'locale', 'zh') if id else 'zh'
+
+def trans(id, name):
+    locale = getUserLocale(id)
     t = lang[locale]
     if name not in t:
         if '_' in name and ' ' not in name:
             logging.warn('trans may get wrong name: ' + name)
     return t.get(name, name)
+
+WEEKDAYDICT = {"Sun":"周日","Mon":"周一","Tue":"周二","Wed":"周三","Thu":"周四","Fri":"周五","Sat":"周六"}
+def strfweekday(id, dt, fmt):
+    t = dt.strftime(fmt)
+    locale = getUserLocale(id)
+    if locale == 'zh':
+        for k,v in WEEKDAYDICT.items():
+            t = t.replace(k, v)
+    return t
