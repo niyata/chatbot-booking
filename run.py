@@ -213,8 +213,8 @@ def handler2(event):
         sheetRows = getSheetData()
         row = findRow(sheetRows, phone)
         if row:
-            if listGet(row, 3):
-                print('record already has facebook id')
+            if listGet(row, 3, '').strip():
+                print('record already has facebook id.')
             else:
                 print('store facebook id in google sheet')
                 values = [
