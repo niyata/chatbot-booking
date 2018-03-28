@@ -9,6 +9,9 @@ pip freeze > requirements.txt
 ### reset credentials when first run with your google account
 python get_credentials.py --noauth_local_webserver
 
+### quick run all in background
+sh restart-all.sh
+
 ### run server for google sheet and user sms link
 ```sh
 # run(test)
@@ -21,7 +24,6 @@ sudo supervisorctl stop tornado-server
 
 ### schedule
 
-**run in background:**
 ```sh
 # run(test)
 python schedule.py
