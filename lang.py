@@ -61,7 +61,7 @@ lang = {
 }
 
 def trans(sender_id, name):
-    locale = userCacheGet(sender_id, 'locale', 'cn')
+    locale = userCacheGet(sender_id, 'locale', 'cn') if sender_id else 'cn'
     t = lang[locale]
     if name not in t:
         if '_' in name and ' ' not in name:
