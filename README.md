@@ -43,10 +43,10 @@ sudo supervisorctl stop schedule
 ## about supervisord
 ```sh
 # config file is /etc/supervisor/supervisord.conf /etc/supervisor/conf.d/chatbot-booking.conf
-# start supervisord(if config changed, you need stop and start supervisord)
+# start supervisord. start supervisord won't stop old process, pls search old process and kill them
 sudo supervisord -c /etc/supervisor/supervisord.conf
-# stop supervisord
-sudo unlink /var/run/supervisor.sock
+# reload supervisor(if config changed, you need reload supervisord)
+sudo supervisorctl reload
 # start tornado-server(run.py)
 sudo supervisorctl start tornado-server
 # start schedule
