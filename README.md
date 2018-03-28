@@ -1,8 +1,3 @@
-## import 
-when start tornado-server with supervisorctl, if get follow error, it is right. to check tornado-server if running, curl https://knode.co:8083/
-```
-tornado-server: ERROR (spawn error)
-```
 # important .py auto restart when app exit, so supervisor neend't restart it
 
 ## make sure oauth2client==3.0.0 https://stackoverflow.com/questions/40154672/importerror-file-cache-is-unavailable-when-using-python-client-for-google-ser
