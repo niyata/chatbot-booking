@@ -204,7 +204,7 @@ def handler2(event):
     """:type event: fbmq.Event"""
     sender_id = event.sender_id
     # page.send(sender_id, "thank you! your message is '%s'" % message)
-    print('referral': event.referral)
+    print('referral', event.referral)
     try:
         phone = event.referral
     except Exception as e:
