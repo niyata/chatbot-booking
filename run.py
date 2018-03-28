@@ -227,7 +227,8 @@ def handler2(event):
                     'values': values
                 }
                 rowIndex = sheetRows.index(row)
-                rangeName = 'Sheet1!D%s:D%s' % (rowIndex, rowIndex)
+                # sheet row index start from 1
+                rangeName = 'Sheet1!D%s:D%s' % (rowIndex+1, rowIndex+1)
                 updateSheet(body, rangeName)
                 print('facebook id stored in google sheet')
         else:
