@@ -94,7 +94,11 @@ def validate():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    page.handle_webhook(request.get_data(as_text=True))
+    # ignore encode error when facebook request data including utf8 chars
+    try:
+        page.handle_webhook(request.get_data().decode('utf-8'))
+    except UnicodeEncodeError as e:
+        pass
     return "ok"
 
 

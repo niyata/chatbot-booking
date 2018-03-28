@@ -155,7 +155,7 @@ def findRow(rows, q, colIndex = 0):
     # col 0 is phone, 3 is fbid
     q = str(q)
     try:
-        return next(row for row in rows if row[colIndex] == q)
+        return next(row for row in rows if listGet(row, colIndex) == q)
     except StopIteration as e:
         return None
 

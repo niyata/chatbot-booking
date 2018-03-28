@@ -30,7 +30,7 @@ lang = {
         'pls_check_chatbot': 'For more info pleaes check out our chatbot %s.',
         'booking': 'Booking',
     },
-    'cn': {
+    'zh': {
         'date_invalid': '输入日期无效',
         'date_not_next_month': '输入的不是有效的下月日期',
         'no_record': '没有找到预订记录',
@@ -61,7 +61,7 @@ lang = {
 }
 
 def trans(sender_id, name):
-    locale = userCacheGet(sender_id, 'locale', 'cn') if sender_id else 'cn'
+    locale = userCacheGet(sender_id, 'locale', 'zh') if sender_id else 'zh'
     t = lang[locale]
     if name not in t:
         if '_' in name and ' ' not in name:
