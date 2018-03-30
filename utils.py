@@ -166,7 +166,7 @@ def getClientFilter():
                         break
                 if notEmpty:
                     models.client.batch(b).create(id=lineNumber, phone=row2[0], name=row2[1], full_name=row2[2], facebook_id=row2[3])
-        values = [['line number', 'phone', 'name', 'full name', 'facebook id']]
+        values = [['Cached at ' + utc2local(datetime.utcnow()).strftime("%Y-%m-%d %H:%M:%S")], ['line number', 'phone', 'name', 'full name', 'facebook id']]
         for row in models.client.all():
             values.append([row.id, row.phone, row.name, row.full_name, row.facebook_id])
         body = {
