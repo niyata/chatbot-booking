@@ -159,12 +159,13 @@ def getClientFilter():
                 lineNumber = i + 1
                 row2 = [listGet(row, j, '').strip() for j in range(4)]
                 notEmpty = False
-                for j in row2:
-                    if row2[j]:
+                for cell in row2:
+                    if cell:
                         notEmpty = True
                         break
                 if notEmpty:
                     models.client.batch(b).create(id=lineNumber, phone=row2[0], name=row2[1], full_name=row2[2], facebook_id=row2[3])
+        setting({CLIENTS_CACHE_VALID: True})
     return models.client.objects()
 def getGoogleStrTime(dt):
     return dt.replace(tzinfo=None).isoformat() + 'Z' # 'Z' indicates UTC time
