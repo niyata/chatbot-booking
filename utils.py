@@ -1,6 +1,7 @@
 import os
 from os import path
 from config import TIMEZONE, SPREADSHEETID
+import config
 from datetime import datetime, timedelta
 import time
 from pytz import timezone
@@ -148,7 +149,7 @@ def getClientFilter():
         from cassandra.cqlengine import connection
         from cassandra.cqlengine.query import BatchQuery
         session = connection.get_connection().session
-        session.execute('TRUNCATE client;')
+        session.execute('TRUNCATE %s.client;'%(config.db_keyspace))
         values = getSheetValues()
         with BatchQuery() as b:
             for i, row in enumerate(values):
