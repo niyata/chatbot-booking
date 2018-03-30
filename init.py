@@ -1,7 +1,7 @@
 import logging
 datefmt = '%Y-%m-%d %H:%M:%S'
 format_str = '%(asctime)s %(levelname)s %(message)s '
-logging.basicConfig(level=logging.INFO, format=format_str, datefmt=datefmt)
+logging.basicConfig(level=logging.WARN, format=format_str, datefmt=datefmt)
 from cassandra.cqlengine import connection
 import config
  
