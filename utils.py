@@ -88,7 +88,8 @@ def updateSheet(body, rangeName = 'Sheet1', valueInputOption='USER_ENTERED'):
     result = service.spreadsheets().values().update(
         spreadsheetId=spreadsheetId, range=rangeName,
         valueInputOption=valueInputOption, body=body).execute()
-    setting({CLIENTS_CACHE_VALID: False})
+    if rangeName.startswith('Sheet1'):
+        setting({CLIENTS_CACHE_VALID: False})
     print('{0} cells updated.'.format(result.get('updatedCells')))
     return result
 # create google calendar event
@@ -165,6 +166,13 @@ def getClientFilter():
                         break
                 if notEmpty:
                     models.client.batch(b).create(id=lineNumber, phone=row2[0], name=row2[1], full_name=row2[2], facebook_id=row2[3])
+        values = [['line number', 'phone', 'name', 'full name', 'facebook id']]
+        for row in models.client.all():
+            values.append([row.id, row.phone, row.name, row.full_name, row.facebook_id])
+        body = {
+            'values': values
+        }
+        updateSheet(body, 'Cached')
         setting({CLIENTS_CACHE_VALID: True})
     return models.client.objects()
 def getGoogleStrTime(dt):
