@@ -5,9 +5,9 @@ import config
 from config import app_host, app_port
 from config import TIMEZONE, SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, fb_VERIFY_TOKEN
 from utils import createEvent, getGoogleSheetService, getEventsByPhone, getBookingDateFromEvent
-from utils import getSheetValues,findRow, findRowByFbid, getEventById, chunks, getGoogleCalendarService
-from utils import getWeekDays, toTimestamp, toDatetime, getSheetData, updateSheet, utc2local, addMonths
-from utils import listGet, p, userCacheGet, userCacheSet
+from utils import getSheetValues,getClientFilter, getEventById, chunks, getGoogleCalendarService
+from utils import getWeekDays, toTimestamp, toDatetime, updateSheet, utc2local, addMonths
+from utils import listGet, p, userCacheGet, userCacheSet, setting, CLIENTS_CACHE_VALID
 from datetime import datetime, timedelta
 import time
 from fbmq import Page, Template
@@ -43,7 +43,7 @@ def hello():
 
 @app.route("/create-events")
 def createEvents():
-    rows = getSheetData()
+    rows = getSheetValues()
     if rows:
         events = []
         for i, row in enumerate(rows[1:]):
@@ -78,9 +78,12 @@ def createEvents():
             updateSheet(body)
     return 'ok'
 
+@app.route("/sheet-changed")
+def sheetChanged():
+    setting({CLIENTS_CACHE_VALID: False})
+    return 'ok'
+
 # facebook
-
-
 @app.route('/webhook', methods=['GET'])
 def validate():
     if request.args.get('hub.mode', '') == 'subscribe' and \
@@ -203,6 +206,7 @@ def message_handler(event):
 def handler2(event):
     """:type event: fbmq.Event"""
     sender_id = event.sender_id
+    start(event)
     # page.send(sender_id, "thank you! your message is '%s'" % message)
     try:
         phone = event.referral['ref']
@@ -210,10 +214,9 @@ def handler2(event):
         phone = None
     if phone:
         print('phone', phone)
-        sheetRows = getSheetData()
-        row = findRow(sheetRows, phone)
+        row = getClientFilter().filter(phone=phone).first()
         if row:
-            if listGet(row, 3, '').strip():
+            if row.facebook_id:
                 print('record already has facebook id.')
             else:
                 print('store facebook id in google sheet')
@@ -226,24 +229,20 @@ def handler2(event):
                 body = {
                     'values': values
                 }
-                rowIndex = sheetRows.index(row)
-                # sheet row index start from 1
-                rangeName = 'Sheet1!D%s:D%s' % (rowIndex+1, rowIndex+1)
+                rangeName = 'Sheet1!D%s:D%s' % (row.id, row.id)
                 updateSheet(body, rangeName)
                 print('facebook id stored in google sheet')
         else:
             print('no record found with given phone')
     print('no ref(phone) in hook event')
-    start(event)
 
 @page.callback([VIEW_MY_BOOKING])
 def callback_1(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
-    rows = getSheetValues()
-    row = findRowByFbid(rows,sender_id)
+    row = getClientFilter().filter(facebook_id=sender_id).first()
     if row:
-        events = getEventsByPhone(row[0])
+        events = getEventsByPhone(row.phone)
         if not events:
             sendMsg(sender_id, 'no_record')
             print('no booking record found', sender_id)
@@ -258,10 +257,9 @@ def callback_1(payload, event):
 def callback_2(payload, event):
     sender_id = event.sender_id
     print(payload, sender_id)
-    rows = getSheetValues()
-    row = findRowByFbid(rows,sender_id)
+    row = getClientFilter().filter(facebook_id=sender_id).first()
     if row:
-        events = getEventsByPhone(row[0])
+        events = getEventsByPhone(row.phone)
         if not events:
             sendMsg(sender_id, 'no_record')
             print('no booking record found', sender_id)
@@ -380,14 +378,12 @@ def setTime(timeList, event):
     except:
         sendMsg(sender_id, 'invalid_input')
         return
-    rows = getSheetData()
-    if rows:
-        row = findRowByFbid(rows,sender_id)
-        if not row:
-            sendMsg(sender_id, 'no_record')
-            return
-        createEvent('%s %s (%s)' %(row[0], row[1], row[2]), dt)
-        sendMsg(sender_id, 'booked_successfully')
+    row = getClientFilter().filter(facebook_id=sender_id).first()
+    if not row:
+        sendMsg(sender_id, 'no_record')
+        return
+    createEvent('%s %s (%s)' %(row.phone, row.name, row.full_name), dt)
+    sendMsg(sender_id, 'booked_successfully')
 
 
 @page.after_send

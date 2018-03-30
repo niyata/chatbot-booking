@@ -10,6 +10,8 @@ import models
 
 pj = path.join
 
+CLIENTS_CACHE_VALID = 'CLIENTS_CACHE_VALID'
+
 def p(pt):
     return pj(path.dirname(__file__), pt)
 
@@ -79,22 +81,13 @@ def getGoogleSheetService():
                                   discoveryServiceUrl=discoveryUrl)
     return gsService
 
-def getSheetData(rangeName = 'Sheet1'):
-    spreadsheetId = SPREADSHEETID
-    service = getGoogleSheetService()
-    result = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheetId, range=rangeName).execute()
-    values = result.get('values', [])
-    if not values:
-        print('No data found.')
-    return values
-
 def updateSheet(body, rangeName = 'Sheet1', valueInputOption='USER_ENTERED'):
     spreadsheetId = SPREADSHEETID
     service = getGoogleSheetService()
     result = service.spreadsheets().values().update(
         spreadsheetId=spreadsheetId, range=rangeName,
         valueInputOption=valueInputOption, body=body).execute()
+    setting({CLIENTS_CACHE_VALID: False})
     print('{0} cells updated.'.format(result.get('updatedCells')))
     return result
 # create google calendar event
@@ -150,17 +143,28 @@ def getSheetValues(rangeName = 'Sheet1'):
         spreadsheetId=spreadsheetId, range=rangeName).execute()
     sheetRows = result.get('values', [])
     return sheetRows
-
-def findRow(rows, q, colIndex = 0):
-    # col 0 is phone, 3 is fbid
-    q = str(q)
-    try:
-        return next(row for row in rows if listGet(row, colIndex) == q)
-    except StopIteration as e:
-        return None
-
-def findRowByFbid(*a):
-    return findRow(*a, 3) # pylint: disable=E1120
+def getClientFilter():
+    if not setting(CLIENTS_CACHE_VALID):
+        from cassandra.cqlengine import connection
+        from cassandra.cqlengine.query import BatchQuery
+        session = connection.get_connection().session
+        session.execute('TRUNCATE client;')
+        values = getSheetValues()
+        with BatchQuery() as b:
+            for i, row in enumerate(values):
+                # 0 is head
+                if i  ==  0:
+                    continue
+                lineNumber = i + 1
+                row2 = [listGet(row, j, '').strip() for j in range(4)]
+                notEmpty = False
+                for j in row2:
+                    if row2[j]:
+                        notEmpty = True
+                        break
+                if notEmpty:
+                    models.client.batch(b).create(id=lineNumber, phone=row2[0], name=row2[1], full_name=row2[2], facebook_id=row2[3])
+    return models.client.objects()
 def getGoogleStrTime(dt):
     return dt.replace(tzinfo=None).isoformat() + 'Z' # 'Z' indicates UTC time
 def getEventsByPhone(phone):
@@ -201,6 +205,22 @@ def userCacheSet(id, name, value):
         cache[name] = value
     user.cache = json.dumps(cache)
     user.save()
+def setting(name, default=None):
+    item = models.key_value.objects.filter(key='setting').first()
+    dc = {} if not item else json.loads(item.value)
+    if isinstance(name, dict):
+        # set
+        toset = name
+        for k, v in toset.items():
+            dc[k] = v
+        dcStr = json.dumps(dc)
+        if not item:
+            item = models.key_value(key='setting')
+        item.value = dcStr
+        item.save()
+    else:
+        # get
+        return dc.get(name, default)
 # deprecated
 phoneEventFp = p('phone-event.json')
 def addPhoneEventMapping(phone, eventId):

@@ -1,7 +1,7 @@
 import init
 import logging
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
-from utils import getSheetValues,findRow, getBookingDateFromEvent, listGet, getGoogleStrTime
+from utils import getSheetValues, getClientFilter, getBookingDateFromEvent, listGet, getGoogleStrTime
 from utils import utc2local, p
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
@@ -30,26 +30,18 @@ while True:
     if not events:
         logging.info('No upcoming events found.')
 
-    # get sheet
-    spreadsheetId = SPREADSHEETID
-    rangeName = 'Sheet1'
-    service = getGoogleSheetService()
-    result = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheetId, range=rangeName).execute()
-    sheetRows = result.get('values', [])
-
     for event in events:
         ls = event['summary'].split(' ')
         phone = ls[0]
         name = ls[1]
-        row = findRow(sheetRows, phone)
+        row = getClientFilter().filter(phone=phone).first()
         if not row:
             logging.info('row not found for event: %s'%(event['summary']))
             continue
-        phone = row[0]
-        facebookid = listGet(row, 3)
+        phone = row.phone
+        facebookid = row.facebookid
         bookingDatetime = getBookingDateFromEvent(event)
-        msgFront = trans(facebookid, 'your_booking_is')%(row[1], bookingDatetime)
+        msgFront = trans(facebookid, 'your_booking_is')%(row.name, bookingDatetime)
 
         if phone:
             # send sms
