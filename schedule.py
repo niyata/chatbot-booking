@@ -39,7 +39,7 @@ while True:
             logging.info('row not found for event: %s'%(event['summary']))
             continue
         phone = row.phone
-        facebookid = row.facebookid
+        facebookid = row.facebook_id
         bookingDatetime = getBookingDateFromEvent(event)
         msgFront = trans(facebookid, 'your_booking_is')%(row.name, bookingDatetime)
 
