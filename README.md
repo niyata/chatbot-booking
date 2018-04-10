@@ -40,8 +40,17 @@ sudo supervisorctl stop schedule
 # config file is /etc/supervisor/supervisord.conf /etc/supervisor/conf.d/chatbot-booking.conf
 # start supervisord. start supervisord won't stop old process, pls search old process and kill them
 sudo supervisord -c /etc/supervisor/supervisord.conf
+# Reload config and then add and remove as necessary (restarts programs)
 # reload supervisor(if config changed, you need reload supervisord)
-sudo supervisorctl reload
+# Restarts the applications whose configuration has changed.
+# Note: After the update command, new application configurations becomes available to start, but do not start automatically until the supervisor service restarts or system reboots (even if autostart option is not disabled). In order to start new application, e.g app2, simply run: supervisorctl start app2
+sudo supervisorctl update
+# Restart application without making configuration changes available. It stops, and re-starts the application.
+sudo supervisorctl start name
+# Reload the daemon’s configuration files, without add/remove (no restarts)
+# If you do not want to re-start all managed applications, but make your configuration changes available, use this command:
+# This command only updates the changes. It does not restart any of the managed applications, even if their configuration has changed. New application configurations cannot be started, neither.
+sudo supervisorctl reread
 # start tornado-server(run.py)
 sudo supervisorctl start tornado-server
 # start schedule
