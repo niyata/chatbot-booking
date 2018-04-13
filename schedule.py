@@ -10,6 +10,7 @@ import urllib.parse
 from fbmq import Page, Template
 from lang import trans
 import config
+logging.basicConfig(level=logging.WARN)
 
 # fbmq page
 page = Page(fb_PAGE_ACCESS_TOKEN)
