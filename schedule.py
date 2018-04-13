@@ -2,7 +2,7 @@ import init
 import logging
 from utils import getGoogleSheetService, getGoogleCalendarService, sendSms
 from utils import getSheetValues, getClientFilter, getBookingDateFromEvent, listGet, getGoogleStrTime
-from utils import utc2local, p
+from utils import utc2local, p, cache
 from datetime import datetime, timedelta
 from config import SPREADSHEETID, fb_PAGE_ACCESS_TOKEN, schedule_delay
 import time
@@ -20,6 +20,7 @@ while True:
     service = getGoogleCalendarService()
     now = datetime.utcnow()
     endTime = now + timedelta(hours=1)
+    now = now - timedelta(minutes=10)
     now = getGoogleStrTime(now)
     endTime = getGoogleStrTime(endTime)
     eventsResult = service.events().list(
@@ -38,6 +39,11 @@ while True:
         if not row:
             logging.info('row not found for event: %s'%(event['summary']))
             continue
+        # if sent
+        cacheName = event['id'] + '_' + event['start']['dateTime']
+        if cache(cacheName):
+            continue
+        #
         phone = row.phone
         facebookid = row.facebook_id
         bookingDatetime = getBookingDateFromEvent(event)
@@ -54,4 +60,5 @@ while True:
             # send fb msg
             page.send(facebookid, msgFront)
             logging.info('fb message sent:' + msgFront)
+        cache({cacheName: True}, 60 * 3)
     time.sleep(schedule_delay)

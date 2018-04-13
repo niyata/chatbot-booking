@@ -18,4 +18,4 @@ sms_from = '+85264507340'
 fb_PAGE_ACCESS_TOKEN = 'EAAFmZCvLIgZAYBAI0ZCUSUGdCwkW6SvLZBdZAnvr5AQoCr2KyGhUJW1ti4QZBmiyRynT15reqiP0wVRwoZB3Y8cGhfpKUXYY4Ok1OjUMCm2saL9m9ZCNbSlsOdIFQfNGB9LZBZCzGtCCj8IQF2bo4IxfEh4nmW3ZB9OeXTxq7tLg1OA1AZDZD'
 fb_VERIFY_TOKEN = 'facebook'
 #
-schedule_delay = 3600 # seconds
+schedule_delay = 5* 60 # seconds

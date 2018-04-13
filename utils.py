@@ -222,7 +222,12 @@ def setting(name, default=None):
         # set
         toset = name
         for k, v in toset.items():
-            dc[k] = v
+            if v == None:
+                # remove
+                if k in dc:
+                    del dc[k]
+            else:
+                dc[k] = v
         dcStr = json.dumps(dc)
         if not item:
             item = models.key_value(key='setting')
@@ -231,6 +236,37 @@ def setting(name, default=None):
     else:
         # get
         return dc.get(name, default)
+# get: name, default(nullable)
+# set: nameValues(dict), minutes(nullable)
+def cache(*args):
+    if isinstance(args[0], dict):
+        # set
+        nameValues = args[0]
+        minutes = listGet(args, 1)
+        for k, v in nameValues.items():
+            item = models.cache.objects.filter(name=k).first()
+            if not item:
+                item = models.cache()
+                item.name = k
+            item.value = v
+            if minutes:
+                item.expired_at = datetime.now() + timedelta(minutes=minutes)
+            else:
+                item.expired_at = None
+            item.save()
+    else:
+        # get
+        name = args[0]
+        default = listGet(args, 1)
+        # remove expired
+        t = models.cache.objects.filter(expired_at__lt = datetime.now()).allow_filtering()[:]
+        for v in t:
+            v.delete()
+        # 
+        item = models.cache.objects.filter(name=name).first()
+        if not item:
+            return default
+        return item.value
 # deprecated
 phoneEventFp = p('phone-event.json')
 def addPhoneEventMapping(phone, eventId):

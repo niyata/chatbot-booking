@@ -6,6 +6,10 @@ from cassandra.cqlengine.models import Model
 class key_value(Model):
     key      = columns.Text(required=True, partition_key=True)
     value      = columns.Text(required=False, )
+class cache(Model):
+    name      = columns.Text(required=True, partition_key=True)
+    value      = columns.Text(required=False, )
+    expired_at      = columns.DateTime(required=False,)
 class user(Model):
     # facebookid
     id      = columns.Text(required=True, partition_key=True)
@@ -27,5 +31,6 @@ class client(Model):
 def sync_tables():
     # tables
     sync_table(key_value)
+    sync_table(cache)
     sync_table(user)
     sync_table(client)
